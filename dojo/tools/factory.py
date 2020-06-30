@@ -62,7 +62,7 @@ from dojo.tools.sslyze.parser import SslyzeXmlParser
 from dojo.tools.testssl.parser import TestsslCSVParser
 from dojo.tools.hadolint.parser import HadolintParser
 
-__author__ = 'Jay Paz'
+__author__ = "Jay Paz"
 
 
 def import_parser_factory(file, test, active, verified, scan_type=None):
@@ -100,105 +100,105 @@ def import_parser_factory(file, test, active, verified, scan_type=None):
         parser = AppSpiderXMLParser(file, test)
     elif scan_type == "Arachni Scan":
         parser = ArachniJSONParser(file, test)
-    elif scan_type == 'VCG Scan':
+    elif scan_type == "VCG Scan":
         parser = VCGParser(file, test)
-    elif scan_type == 'Dependency Check Scan':
+    elif scan_type == "Dependency Check Scan":
         parser = DependencyCheckParser(file, test)
-    elif scan_type == 'Retire.js Scan':
+    elif scan_type == "Retire.js Scan":
         parser = RetireJsParser(file, test)
-    elif scan_type == 'Node Security Platform Scan':
+    elif scan_type == "Node Security Platform Scan":
         parser = NspParser(file, test)
-    elif scan_type == 'NPM Audit Scan':
+    elif scan_type == "NPM Audit Scan":
         parser = NpmAuditParser(file, test)
-    elif scan_type == 'Symfony Security Check':
+    elif scan_type == "Symfony Security Check":
         parser = PhpSymfonySecurityCheckParser(file, test)
-    elif scan_type == 'Generic Findings Import':
+    elif scan_type == "Generic Findings Import":
         parser = GenericFindingUploadCsvParser(file, test, active, verified)
-    elif scan_type == 'Qualys Scan':
+    elif scan_type == "Qualys Scan":
         parser = QualysParser(file, test)
-    elif scan_type == 'Qualys Webapp Scan':
+    elif scan_type == "Qualys Webapp Scan":
         parser = QualysWebAppParser(file, test)
     elif scan_type == "OpenVAS CSV":
         parser = OpenVASUploadCsvParser(file, test)
-    elif scan_type == 'Snyk Scan':
+    elif scan_type == "Snyk Scan":
         parser = SnykParser(file, test)
-    elif scan_type == 'SKF Scan':
+    elif scan_type == "SKF Scan":
         parser = SKFCsvParser(file, test)
-    elif scan_type == 'SSL Labs Scan':
+    elif scan_type == "SSL Labs Scan":
         parser = SSLlabsParser(file, test)
-    elif scan_type == 'Trufflehog Scan':
+    elif scan_type == "Trufflehog Scan":
         parser = TruffleHogJSONParser(file, test)
-    elif scan_type == 'Clair Klar Scan':
+    elif scan_type == "Clair Klar Scan":
         parser = ClairKlarParser(file, test)
-    elif scan_type == 'Gosec Scanner':
+    elif scan_type == "Gosec Scanner":
         parser = GosecScannerParser(file, test)
-    elif scan_type == 'Trustwave Scan (CSV)':
+    elif scan_type == "Trustwave Scan (CSV)":
         parser = TrustwaveUploadCsvParser(file, test)
-    elif scan_type == 'Netsparker Scan':
+    elif scan_type == "Netsparker Scan":
         parser = NetsparkerParser(file, test)
-    elif scan_type == 'PHP Security Audit v2':
+    elif scan_type == "PHP Security Audit v2":
         parser = PhpSecurityAuditV2(file, test)
-    elif scan_type == 'Acunetix Scan':
+    elif scan_type == "Acunetix Scan":
         parser = AcunetixScannerParser(file, test)
-    elif scan_type == 'Fortify Scan':
+    elif scan_type == "Fortify Scan":
         parser = FortifyXMLParser(file, test)
-    elif scan_type == 'SonarQube Scan':
+    elif scan_type == "SonarQube Scan":
         parser = SonarQubeHtmlParser(file, test)
-    elif scan_type == 'MobSF Scan':
+    elif scan_type == "MobSF Scan":
         parser = MobSFParser(file, test)
-    elif scan_type == 'AWS Scout2 Scan':
+    elif scan_type == "AWS Scout2 Scan":
         parser = AWSScout2Parser(file, test)
-    elif scan_type == 'AWS Prowler Scan':
+    elif scan_type == "AWS Prowler Scan":
         parser = AWSProwlerParser(file, test)
-    elif scan_type == 'Brakeman Scan':
+    elif scan_type == "Brakeman Scan":
         parser = BrakemanScanParser(file, test)
-    elif scan_type == 'SpotBugs Scan':
+    elif scan_type == "SpotBugs Scan":
         parser = SpotbugsXMLParser(file, test)
-    elif scan_type == 'Safety Scan':
+    elif scan_type == "Safety Scan":
         parser = SafetyParser(file, test)
-    elif scan_type == 'DawnScanner Scan':
+    elif scan_type == "DawnScanner Scan":
         parser = DawnScannerParser(file, test)
-    elif scan_type == 'Anchore Engine Scan':
+    elif scan_type == "Anchore Engine Scan":
         parser = AnchoreEngineScanParser(file, test)
-    elif scan_type == 'Bundler-Audit Scan':
+    elif scan_type == "Bundler-Audit Scan":
         parser = BundlerAuditParser(file, test)
-    elif scan_type == 'Twistlock Image Scan':
+    elif scan_type == "Twistlock Image Scan":
         parser = TwistlockParser(file, test)
-    elif scan_type == 'IBM AppScan DAST':
+    elif scan_type == "IBM AppScan DAST":
         parser = IbmAppScanDASTXMLParser(file, test)
-    elif scan_type == 'Kiuwan Scan':
+    elif scan_type == "Kiuwan Scan":
         parser = KiuwanCSVParser(file, test)
-    elif scan_type == 'Blackduck Hub Scan':
+    elif scan_type == "Blackduck Hub Scan":
         parser = BlackduckHubCSVParser(file, test)
-    elif scan_type == 'Sonatype Application Scan':
+    elif scan_type == "Sonatype Application Scan":
         parser = SonatypeJSONParser(file, test)
-    elif scan_type == 'Openscap Vulnerability Scan':
+    elif scan_type == "Openscap Vulnerability Scan":
         parser = OpenscapXMLParser(file, test)
-    elif scan_type == 'Immuniweb Scan':
+    elif scan_type == "Immuniweb Scan":
         parser = ImmuniwebXMLParser(file, test)
-    elif scan_type == 'Wapiti Scan':
+    elif scan_type == "Wapiti Scan":
         parser = WapitiXMLParser(file, test)
-    elif scan_type == 'Cobalt.io Scan':
+    elif scan_type == "Cobalt.io Scan":
         parser = CobaltCSVParser(file, test)
-    elif scan_type == 'Mozilla Observatory Scan':
+    elif scan_type == "Mozilla Observatory Scan":
         parser = MozillaObservatoryJSONParser(file, test)
-    elif scan_type == 'Whitesource Scan':
+    elif scan_type == "Whitesource Scan":
         parser = WhitesourceJSONParser(file, test)
-    elif scan_type == 'Microfocus Webinspect Scan':
+    elif scan_type == "Microfocus Webinspect Scan":
         parser = MicrofocusWebinspectXMLParser(file, test)
-    elif scan_type == 'Wpscan':
+    elif scan_type == "Wpscan":
         parser = WpscanJSONParser(file, test)
-    elif scan_type == 'Sslscan':
+    elif scan_type == "Sslscan":
         parser = SslscanXMLParser(file, test)
-    elif scan_type == 'JFrog Xray Scan':
+    elif scan_type == "JFrog Xray Scan":
         parser = XrayJSONParser(file, test)
-    elif scan_type == 'Sslyze Scan':
+    elif scan_type == "Sslyze Scan":
         parser = SslyzeXmlParser(file, test)
-    elif scan_type == 'Testssl Scan':
+    elif scan_type == "Testssl Scan":
         parser = TestsslCSVParser(file, test)
-    elif scan_type == 'Hadolint Dockerfile check':
+    elif scan_type == "Hadolint Dockerfile check":
         parser = HadolintParser(file, test)
     else:
-        raise ValueError('Unknown Test Type')
+        raise ValueError("Unknown Test Type")
 
     return parser

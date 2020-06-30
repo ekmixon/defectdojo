@@ -17,7 +17,8 @@ class TestTwistlockParser(TestCase):
         self.assertEqual(5, len(parser.items))
 
     def test_parse_file_which_contain_packages_info(self):
-        testfile = open("dojo/unittests/scans/twistlock/findings_include_packages.json")
+        testfile = open(
+            "dojo/unittests/scans/twistlock/findings_include_packages.json")
         parser = TwistlockParser(testfile, Test())
         testfile.close()
         self.assertEqual(4, len(parser.items))

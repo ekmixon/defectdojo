@@ -5,7 +5,6 @@ import re
 import sys
 import os
 
-
 # first thing first. We have to create product, just to make sure there is atleast 1 product available
 # to assign endpoints to when creating or editing any.
 # importing Product_unit_test as a module
@@ -13,14 +12,18 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 try:  # First Try for python 3
     import importlib.util
-    product_unit_test_module = importlib.util.spec_from_file_location("Product_unit_test",
-        os.path.join(dir_path, 'Product_unit_test.py'))  # using ',' allows python to determine the type of separator to use.
-    product_unit_test = importlib.util.module_from_spec(product_unit_test_module)
+
+    product_unit_test_module = importlib.util.spec_from_file_location(
+        "Product_unit_test", os.path.join(dir_path, "Product_unit_test.py")
+    )  # using ',' allows python to determine the type of separator to use.
+    product_unit_test = importlib.util.module_from_spec(
+        product_unit_test_module)
     product_unit_test_module.loader.exec_module(product_unit_test)
 except:  # This will work for python2 if above fails
     import imp
-    product_unit_test = imp.load_source('Product_unit_test',
-        os.path.join(dir_path, 'Product_unit_test.py'))
+
+    product_unit_test = imp.load_source(
+        "Product_unit_test", os.path.join(dir_path, "Product_unit_test.py"))
 
 
 class EndpointTest(unittest.TestCase):
@@ -28,7 +31,7 @@ class EndpointTest(unittest.TestCase):
         # Initialize the driver
         # When used with Travis, chromdriver is stored in the same
         # directory as the unit tests
-        self.driver = webdriver.Chrome('chromedriver')
+        self.driver = webdriver.Chrome("chromedriver")
         # Allow a little time for the driver to initialize
         self.driver.implicitly_wait(30)
         # Set the base address of the dojo
@@ -46,9 +49,11 @@ class EndpointTest(unittest.TestCase):
         # These credentials will be used by Travis when testing new PRs
         # They will not work when testing on your own build
         # Be sure to change them before submitting a PR
-        driver.find_element_by_id("id_username").send_keys(os.environ['DD_ADMIN_USER'])
+        driver.find_element_by_id("id_username").send_keys(
+            os.environ["DD_ADMIN_USER"])
         driver.find_element_by_id("id_password").clear()
-        driver.find_element_by_id("id_password").send_keys(os.environ['DD_ADMIN_PASSWORD'])
+        driver.find_element_by_id("id_password").send_keys(
+            os.environ["DD_ADMIN_PASSWORD"])
         # "Click" the but the login button
         driver.find_element_by_css_selector("button.btn.btn-success").click()
         return driver
@@ -68,13 +73,14 @@ class EndpointTest(unittest.TestCase):
         driver.find_element_by_id("id_endpoint").clear()
         driver.find_element_by_id("id_endpoint").send_keys("moving.com.rnd")
         # Select product to assign endpoint to
-        Select(driver.find_element_by_id("id_product")).select_by_visible_text("QA Test")
+        Select(driver.find_element_by_id("id_product")).select_by_visible_text(
+            "QA Test")
         # submit
         driver.find_element_by_css_selector("input.btn.btn-primary").click()
         # Query the site to determine if the finding has been added
         productTxt = driver.find_element_by_tag_name("BODY").text
         # Assert ot the query to dtermine status of failure
-        self.assertTrue(re.search(r'Endpoint added successfully', productTxt))
+        self.assertTrue(re.search(r"Endpoint added successfully", productTxt))
 
     def test_edit_endpoint(self):
         # Login to the site. Password will have to be modified
@@ -100,7 +106,8 @@ class EndpointTest(unittest.TestCase):
         # Query the site to determine if the product has been added
         productTxt = driver.find_element_by_tag_name("BODY").text
         # Assert ot the query to dtermine status of failure
-        self.assertTrue(re.search(r'Endpoint updated successfully', productTxt))
+        self.assertTrue(re.search(r"Endpoint updated successfully",
+                                  productTxt))
 
     def test_delete_endpoint(self):
         # Login to the site. Password will have to be modified
@@ -119,7 +126,8 @@ class EndpointTest(unittest.TestCase):
         # Query the site to determine if the product has been added
         productTxt = driver.find_element_by_tag_name("BODY").text
         # Assert ot the query to dtermine status of failure
-        self.assertTrue(re.search(r'Endpoint and relationships removed.', productTxt))
+        self.assertTrue(
+            re.search(r"Endpoint and relationships removed.", productTxt))
 
     def tearDown(self):
         self.driver.quit()
@@ -130,11 +138,11 @@ def suite():
     suite = unittest.TestSuite()
     # Add each test the the suite to be run
     # success and failure is output by the test
-    suite.addTest(product_unit_test.ProductTest('test_create_product'))
-    suite.addTest(EndpointTest('test_create_endpoint'))
-    suite.addTest(EndpointTest('test_edit_endpoint'))
-    suite.addTest(EndpointTest('test_delete_endpoint'))
-    suite.addTest(product_unit_test.ProductTest('test_delete_product'))
+    suite.addTest(product_unit_test.ProductTest("test_create_product"))
+    suite.addTest(EndpointTest("test_create_endpoint"))
+    suite.addTest(EndpointTest("test_edit_endpoint"))
+    suite.addTest(EndpointTest("test_delete_endpoint"))
+    suite.addTest(product_unit_test.ProductTest("test_delete_product"))
     return suite
 
 

@@ -9,7 +9,6 @@ from dojo.models import Notifications
 from dojo.utils import add_breadcrumb
 from dojo.forms import NotificationsForm
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -20,20 +19,27 @@ def personal_notifications(request):
         notifications_obj = Notifications(user=request.user)
 
     form = NotificationsForm(instance=notifications_obj)
-    if request.method == 'POST':
+    if request.method == "POST":
         form = NotificationsForm(request.POST, instance=notifications_obj)
         if form.is_valid():
             new_settings = form.save()
             messages.add_message(request,
                                  messages.SUCCESS,
-                                 'Settings saved.',
-                                 extra_tags='alert-success')
+                                 "Settings saved.",
+                                 extra_tags="alert-success")
 
-    add_breadcrumb(title="Personal notification settings", top_level=False, request=request)
-    return render(request, 'dojo/notifications.html',
-                  {'form': form,
-                   'scope': 'personal',
-                   'admin': request.user.is_superuser})
+    add_breadcrumb(title="Personal notification settings",
+                   top_level=False,
+                   request=request)
+    return render(
+        request,
+        "dojo/notifications.html",
+        {
+            "form": form,
+            "scope": "personal",
+            "admin": request.user.is_superuser
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_superuser)
@@ -44,17 +50,24 @@ def global_notifications(request):
         notifications_obj = Notifications(user=None)
 
     form = NotificationsForm(instance=notifications_obj)
-    if request.method == 'POST':
+    if request.method == "POST":
         form = NotificationsForm(request.POST, instance=notifications_obj)
         if form.is_valid():
             new_settings = form.save()
             messages.add_message(request,
                                  messages.SUCCESS,
-                                 'Settings saved.',
-                                 extra_tags='alert-success')
+                                 "Settings saved.",
+                                 extra_tags="alert-success")
 
-    add_breadcrumb(title="Global notification settings", top_level=False, request=request)
-    return render(request, 'dojo/notifications.html',
-                  {'form': form,
-                   'scope': 'global',
-                   'admin': request.user.is_superuser})
+    add_breadcrumb(title="Global notification settings",
+                   top_level=False,
+                   request=request)
+    return render(
+        request,
+        "dojo/notifications.html",
+        {
+            "form": form,
+            "scope": "global",
+            "admin": request.user.is_superuser
+        },
+    )

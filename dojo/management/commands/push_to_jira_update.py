@@ -4,8 +4,7 @@ from pytz import timezone
 from dojo.models import Finding
 from dojo.utils import update_issue, get_system_setting
 
-locale = timezone(get_system_setting('time_zone'))
-
+locale = timezone(get_system_setting("time_zone"))
 """
 Author: Aaron Weaver
 This script will locate open, active findings and update them in Jira. Useful if you need to make bulk changes with Jira:
@@ -13,7 +12,7 @@ This script will locate open, active findings and update them in Jira. Useful if
 
 
 class Command(BaseCommand):
-    help = 'No input commands for Jira bulk update.'
+    help = "No input commands for Jira bulk update."
 
     def handle(self, *args, **options):
 

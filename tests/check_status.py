@@ -12,7 +12,7 @@ from selenium.common.exceptions import NoSuchElementException
 
 class Login(unittest.TestCase):
     def setUp(self):
-        self.driver = webdriver.Chrome('chromedriver')
+        self.driver = webdriver.Chrome("chromedriver")
         self.driver.implicitly_wait(500)
         self.base_url = "http://localhost:8000/"
         self.verificationErrors = []
@@ -23,10 +23,10 @@ class Login(unittest.TestCase):
         driver.get(self.base_url + "login")
         cred_user_elem = driver.find_element_by_id("id_username")
         cred_user_elem.clear()
-        cred_user_elem.send_keys(os.environ['DD_ADMIN_USER'])
+        cred_user_elem.send_keys(os.environ["DD_ADMIN_USER"])
         cred_pass_elem = driver.find_element_by_id("id_password")
         cred_pass_elem.clear()
-        cred_pass_elem.send_keys(os.environ['DD_ADMIN_PASSWORD'])
+        cred_pass_elem.send_keys(os.environ["DD_ADMIN_PASSWORD"])
         driver.find_element_by_css_selector("button.btn.btn-success").click()
         return driver
 
@@ -35,25 +35,29 @@ class Login(unittest.TestCase):
         driver.get(self.base_url + "api/key")
         time.sleep(3)
         api_text = driver.find_element_by_tag_name("BODY").text
-        r_pattern = re.compile('Your current API key is (\w+)')
+        r_pattern = re.compile("Your current API key is (\w+)")
         r_match = r_pattern.search(api_text)
         return r_match.group(1)
 
     def test_engagement_status(self):
         api_key = self.get_api_key()
         api_url = self.base_url + "api/v1/engagements"
-        user = os.environ['DOJO_ADMIN_USER']
-        headers = {'content-type': 'application/json',
-                   'Authorization': 'ApiKey %s:%s' % (user, api_key)}
+        user = os.environ["DOJO_ADMIN_USER"]
+        headers = {
+            "content-type": "application/json",
+            "Authorization": "ApiKey %s:%s" % (user, api_key),
+        }
         r = requests.get(api_url, headers=headers, verify=False)
         self.assertEqual(r.status_code, 200)
 
     def test_finding_status(self):
         api_key = self.get_api_key()
         api_url = self.base_url + "api/v1/findings"
-        user = os.environ['DOJO_ADMIN_USER']
-        headers = {'content-type': 'application/json',
-                   'Authorization': 'ApiKey %s:%s' % (user, api_key)}
+        user = os.environ["DOJO_ADMIN_USER"]
+        headers = {
+            "content-type": "application/json",
+            "Authorization": "ApiKey %s:%s" % (user, api_key),
+        }
 
         r = requests.get(api_url, headers=headers, verify=False)
         self.assertEqual(r.status_code, 200)
@@ -61,18 +65,22 @@ class Login(unittest.TestCase):
     def test_product_status(self):
         api_key = self.get_api_key()
         api_url = self.base_url + "api/v1/products"
-        user = os.environ['DOJO_ADMIN_USER']
-        headers = {'content-type': 'application/json',
-                   'Authorization': 'ApiKey %s:%s' % (user, api_key)}
+        user = os.environ["DOJO_ADMIN_USER"]
+        headers = {
+            "content-type": "application/json",
+            "Authorization": "ApiKey %s:%s" % (user, api_key),
+        }
         r = requests.get(api_url, headers=headers, verify=False)
         self.assertEqual(r.status_code, 200)
 
     def test_t_status(self):
         api_key = self.get_api_key()
         api_url = self.base_url + "api/v1/tests"
-        user = os.environ['DOJO_ADMIN_USER']
-        headers = {'content-type': 'application/json',
-                   'Authorization': 'ApiKey %s:%s' % (user, api_key)}
+        user = os.environ["DOJO_ADMIN_USER"]
+        headers = {
+            "content-type": "application/json",
+            "Authorization": "ApiKey %s:%s" % (user, api_key),
+        }
         r = requests.get(api_url, headers=headers, verify=False)
         self.assertEqual(r.status_code, 200)
 
@@ -109,8 +117,8 @@ class Login(unittest.TestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(Login('setUp'))
-    suite.addTest(Login('login_page'))
+    suite.addTest(Login("setUp"))
+    suite.addTest(Login("login_page"))
     return suite
 
 

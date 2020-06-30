@@ -57,16 +57,20 @@ def action_history(request, cid, oid):
                 product_tab.setEngagement(object_value.engagement)
 
     history = LogEntry.objects.filter(content_type=ct,
-                                      object_pk=obj.id).order_by('-timestamp')
+                                      object_pk=obj.id).order_by("-timestamp")
     history = LogEntryFilter(request.GET, queryset=history)
     paged_history = get_page_items(request, history.qs, 25)
 
-    return render(request, 'dojo/action_history.html',
-                  {"history": paged_history,
-                   'product_tab': product_tab,
-                   "filtered": history,
-                   "obj": obj,
-                   "test": test,
-                   "object_value": object_value,
-                   "finding": finding
-                   })
+    return render(
+        request,
+        "dojo/action_history.html",
+        {
+            "history": paged_history,
+            "product_tab": product_tab,
+            "filtered": history,
+            "obj": obj,
+            "test": test,
+            "object_value": object_value,
+            "finding": finding,
+        },
+    )

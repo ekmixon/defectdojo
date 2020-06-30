@@ -1,4 +1,5 @@
 from selenium import webdriver
+
 # from selenium.webdriver.support.ui import Select
 import unittest
 import re
@@ -11,7 +12,7 @@ class UserTest(unittest.TestCase):
         # Initialize the driver
         # When used with Travis, chromdriver is stored in the same
         # directory as the unit tests
-        self.driver = webdriver.Chrome('chromedriver')
+        self.driver = webdriver.Chrome("chromedriver")
         # Allow a little time for the driver to initialize
         self.driver.implicitly_wait(30)
         # Set the base address of the dojo
@@ -29,9 +30,11 @@ class UserTest(unittest.TestCase):
         # These credentials will be used by Travis when testing new PRs
         # They will not work when testing on your own build
         # Be sure to change them before submitting a PR
-        driver.find_element_by_id("id_username").send_keys(os.environ['DD_ADMIN_USER'])
+        driver.find_element_by_id("id_username").send_keys(
+            os.environ["DD_ADMIN_USER"])
         driver.find_element_by_id("id_password").clear()
-        driver.find_element_by_id("id_password").send_keys(os.environ['DD_ADMIN_PASSWORD'])
+        driver.find_element_by_id("id_password").send_keys(
+            os.environ["DD_ADMIN_PASSWORD"])
         # "Click" the but the login button
         driver.find_element_by_css_selector("button.btn.btn-success").click()
         return driver
@@ -59,16 +62,21 @@ class UserTest(unittest.TestCase):
         driver.find_element_by_id("id_last_name").send_keys("Samuel")
         # Email Address
         driver.find_element_by_id("id_email").clear()
-        driver.find_element_by_id("id_email").send_keys("propersam@example.com")
+        driver.find_element_by_id("id_email").send_keys(
+            "propersam@example.com")
         # Give user super user permissions by ticking the checkbox 'is_superuser'
-        driver.find_element_by_name("is_superuser").click()  # Clicking will mark the checkbox
+        driver.find_element_by_name(
+            "is_superuser").click()  # Clicking will mark the checkbox
         # "Click" the submit button to complete the transaction
         driver.find_element_by_css_selector("input.btn.btn-primary").click()
         # Query the site to determine if the user has been created
         productTxt = driver.find_element_by_tag_name("BODY").text
         # Assert ot the query to dtermine status of failure
-        self.assertTrue(re.search(r'User added successfully, you may edit if necessary.', productTxt) or
-            re.search(r'A user with that username already exists.', productTxt))
+        self.assertTrue(
+            re.search(r"User added successfully, you may edit if necessary.",
+                      productTxt)
+            or re.search(r"A user with that username already exists.",
+                         productTxt))
 
     def test_user_edit_permissions(self):
         # Login to the site. Password will have to be modified
@@ -84,7 +92,8 @@ class UserTest(unittest.TestCase):
         driver.find_element_by_id("id_username").clear()
         driver.find_element_by_id("id_username").send_keys("propersahm")
         # click on 'apply filter' button
-        driver.find_element_by_css_selector("button.btn.btn-sm.btn-primary").click()
+        driver.find_element_by_css_selector(
+            "button.btn.btn-sm.btn-primary").click()
         # only the needed user is now available proceed with clicking 'Edit' button
         driver.find_element_by_link_text("Edit").click()
         # Unselect Super Admin Permission from previously created user
@@ -96,7 +105,7 @@ class UserTest(unittest.TestCase):
         # Query the site to determine if the User permission has been changed
         productTxt = driver.find_element_by_tag_name("BODY").text
         # Assert ot the query to dtermine status of failure
-        self.assertTrue(re.search(r'User saved successfully.', productTxt))
+        self.assertTrue(re.search(r"User saved successfully.", productTxt))
 
     def test_user_delete(self):
         # Login to the site. Password will have to be modified
@@ -112,7 +121,8 @@ class UserTest(unittest.TestCase):
         driver.find_element_by_id("id_username").clear()
         driver.find_element_by_id("id_username").send_keys("propersahm")
         # click on 'apply filter' button
-        driver.find_element_by_css_selector("button.btn.btn-sm.btn-primary").click()
+        driver.find_element_by_css_selector(
+            "button.btn.btn-sm.btn-primary").click()
         # only the needed user is now available proceed with clicking 'Edit' button
         driver.find_element_by_link_text("Edit").click()
         # "Click" the delete button to complete the transaction
@@ -122,7 +132,8 @@ class UserTest(unittest.TestCase):
         # Query the site to determine if the User has been deleted
         productTxt = driver.find_element_by_tag_name("BODY").text
         # Assert ot the query to dtermine status of failure
-        self.assertTrue(re.search(r'User and relationships removed.', productTxt))
+        self.assertTrue(
+            re.search(r"User and relationships removed.", productTxt))
 
     def tearDown(self):
         self.driver.quit()
@@ -133,9 +144,9 @@ def suite():
     suite = unittest.TestSuite()
     # Add each test the the suite to be run
     # success and failure is output by the test
-    suite.addTest(UserTest('test_create_user'))
-    suite.addTest(UserTest('test_user_edit_permissions'))
-    suite.addTest(UserTest('test_user_delete'))
+    suite.addTest(UserTest("test_create_user"))
+    suite.addTest(UserTest("test_user_edit_permissions"))
+    suite.addTest(UserTest("test_user_delete"))
     return suite
 
 

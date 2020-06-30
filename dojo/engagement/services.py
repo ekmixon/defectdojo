@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 
 def close_engagement(eng):
     eng.active = False
-    eng.status = 'Completed'
+    eng.status = "Completed"
     eng.updated = timezone.now()
     eng.save()
 
-    if get_system_setting('enable_jira'):
+    if get_system_setting("enable_jira"):
         jpkey_set = JIRA_PKey.objects.filter(product=eng.product)
         if jpkey_set.count() >= 1:
             close_epic_task(eng, True)
@@ -23,5 +23,5 @@ def close_engagement(eng):
 
 def reopen_engagement(eng):
     eng.active = True
-    eng.status = 'In Progress'
+    eng.status = "In Progress"
     eng.save()

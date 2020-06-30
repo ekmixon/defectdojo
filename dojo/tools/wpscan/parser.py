@@ -1,14 +1,12 @@
-
 import json
 import hashlib
 from urllib.parse import urlparse
 from dojo.models import Endpoint, Finding
 
-__author__ = 'dr3dd589'
+__author__ = "dr3dd589"
 
 
 class WpscanJSONParser(object):
-
     def __init__(self, file, test):
         self.dupes = dict()
         self.items = ()
@@ -16,42 +14,44 @@ class WpscanJSONParser(object):
             return
         data = file.read()
         try:
-            tree = json.loads(str(data, 'utf-8'))
+            tree = json.loads(str(data, "utf-8"))
         except:
             tree = json.loads(data)
         for content in tree:
             node = tree[content]
             vuln_arr = []
             try:
-                vuln_arr = node['vulnerabilities']
+                vuln_arr = node["vulnerabilities"]
             except:
                 pass
-            if 'plugins' in content:
+            if "plugins" in content:
                 for plugin_content in node:
-                    vuln_arr = node[plugin_content]['vulnerabilities']
-            target_url = tree['target_url']
+                    vuln_arr = node[plugin_content]["vulnerabilities"]
+            target_url = tree["target_url"]
             parsedUrl = urlparse(target_url)
             protocol = parsedUrl.scheme
             query = parsedUrl.query
             fragment = parsedUrl.fragment
             path = parsedUrl.path
-            port = ''
+            port = ""
             try:
-                (host, port) = parsedUrl.netloc.split(':')
+                (host, port) = parsedUrl.netloc.split(":")
             except:
                 host = parsedUrl.netloc
 
             for vul in vuln_arr:
-                title = vul['title']
-                references = '\n'.join(vul['references']['url']) + '\n' \
-                    + '**wpvulndb : **' + str(vul['references']['wpvulndb'])
+                title = vul["title"]
+                references = ("\n".join(vul["references"]["url"]) + "\n" +
+                              "**wpvulndb : **" +
+                              str(vul["references"]["wpvulndb"]))
                 try:
-                    mitigation = 'fixed in : ' + vul['fixed_in']
+                    mitigation = "fixed in : " + vul["fixed_in"]
                 except:
-                    mitigation = 'N/A'
-                severity = 'Info'
-                description = '**Title : **' + title
-                dupe_key = hashlib.md5(str(references + title).encode('utf-8')).hexdigest()
+                    mitigation = "N/A"
+                severity = "Info"
+                description = "**Title : **" + title
+                dupe_key = hashlib.md5(
+                    str(references + title).encode("utf-8")).hexdigest()
                 if dupe_key in self.dupes:
                     finding = self.dupes[dupe_key]
                     if finding.references:
@@ -67,19 +67,23 @@ class WpscanJSONParser(object):
                         verified=False,
                         description=description,
                         severity=severity,
-                        numerical_severity=Finding.get_numerical_severity(severity),
+                        numerical_severity=Finding.get_numerical_severity(
+                            severity),
                         mitigation=mitigation,
                         references=references,
-                        dynamic_finding=True,)
+                        dynamic_finding=True,
+                    )
                     finding.unsaved_endpoints = list()
                     self.dupes[dupe_key] = finding
 
                     if target_url is not None:
-                        finding.unsaved_endpoints.append(Endpoint(
-                            host=host,
-                            port=port,
-                            path=path,
-                            protocol=protocol,
-                            query=query,
-                            fragment=fragment,))
+                        finding.unsaved_endpoints.append(
+                            Endpoint(
+                                host=host,
+                                port=port,
+                                path=path,
+                                protocol=protocol,
+                                query=query,
+                                fragment=fragment,
+                            ))
             self.items = self.dupes.values()

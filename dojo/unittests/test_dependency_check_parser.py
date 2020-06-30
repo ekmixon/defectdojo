@@ -6,7 +6,6 @@ from dojo.tools.dependency_check.parser import DependencyCheckParser
 
 
 class TestFile(object):
-
     def read(self):
         return self.content
 
@@ -16,7 +15,6 @@ class TestFile(object):
 
 
 class TestDependencyCheckParser(TestCase):
-
     def test_parse_without_file_has_no_findings(self):
         parser = DependencyCheckParser(None, Test())
         self.assertEqual(0, len(parser.items))
@@ -369,17 +367,17 @@ class TestDependencyCheckParser(TestCase):
 
         vulnerability = ElementTree.fromstring(finding_xml)
 
-        expected_references = 'name: Reference Name\nsource: Reference1\nurl: http://localhost/badvulnerability.htm\n\n'
-        expected_references += 'name: Reference for a bad vulnerability\nsource: MISC\n'
-        expected_references += 'url: http://localhost2/reference_for_badvulnerability.pdf\n\n'
+        expected_references = "name: Reference Name\nsource: Reference1\nurl: http://localhost/badvulnerability.htm\n\n"
+        expected_references += "name: Reference for a bad vulnerability\nsource: MISC\n"
+        expected_references += (
+            "url: http://localhost2/reference_for_badvulnerability.pdf\n\n")
 
-        testfile = TestFile('dp_finding.xml', finding_xml)
+        testfile = TestFile("dp_finding.xml", finding_xml)
         parser = DependencyCheckParser(testfile, Test())
-        finding = parser.get_finding_from_vulnerability(vulnerability,
-                                                        'testfile.jar', Test())
-        self.assertEqual('testfile.jar | CVE-0000-0001', finding.title)
-        self.assertEqual('High', finding.severity)
-        self.assertEqual(
-                'Description of a bad vulnerability.',
-                finding.description)
+        finding = parser.get_finding_from_vulnerability(
+            vulnerability, "testfile.jar", Test())
+        self.assertEqual("testfile.jar | CVE-0000-0001", finding.title)
+        self.assertEqual("High", finding.severity)
+        self.assertEqual("Description of a bad vulnerability.",
+                         finding.description)
         self.assertEqual(expected_references, finding.references)

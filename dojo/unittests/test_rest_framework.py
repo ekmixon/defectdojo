@@ -1,14 +1,41 @@
-from dojo.models import Product, Engagement, Test, Finding, \
-    JIRA_Issue, Tool_Product_Settings, Tool_Configuration, Tool_Type, \
-    User, ScanSettings, Scan, Stub_Finding, Endpoint, JIRA_PKey, JIRA_Conf, \
-    Finding_Template
+from dojo.models import (
+    Product,
+    Engagement,
+    Test,
+    Finding,
+    JIRA_Issue,
+    Tool_Product_Settings,
+    Tool_Configuration,
+    Tool_Type,
+    User,
+    ScanSettings,
+    Scan,
+    Stub_Finding,
+    Endpoint,
+    JIRA_PKey,
+    JIRA_Conf,
+    Finding_Template,
+)
 
-from dojo.api_v2.views import EndPointViewSet, EngagementViewSet, \
-    FindingTemplatesViewSet, FindingViewSet, JiraConfigurationsViewSet, \
-    JiraIssuesViewSet, JiraViewSet, ProductViewSet, ScanSettingsViewSet, \
-    ScansViewSet, StubFindingsViewSet, TestsViewSet, \
-    ToolConfigurationsViewSet, ToolProductSettingsViewSet, ToolTypesViewSet, \
-    UsersViewSet, ImportScanView
+from dojo.api_v2.views import (
+    EndPointViewSet,
+    EngagementViewSet,
+    FindingTemplatesViewSet,
+    FindingViewSet,
+    JiraConfigurationsViewSet,
+    JiraIssuesViewSet,
+    JiraViewSet,
+    ProductViewSet,
+    ScanSettingsViewSet,
+    ScansViewSet,
+    StubFindingsViewSet,
+    TestsViewSet,
+    ToolConfigurationsViewSet,
+    ToolProductSettingsViewSet,
+    ToolTypesViewSet,
+    UsersViewSet,
+    ImportScanView,
+)
 
 from django.urls import reverse
 from rest_framework.authtoken.models import Token
@@ -19,91 +46,94 @@ def skipIfNotSubclass(baseclass_name):
     def decorate(f):
         def wrapper(self, *args, **kwargs):
             if baseclass_name not in self.view_mixins:
-                self.skipTest('This view is not %s' % baseclass_name)
+                self.skipTest("This view is not %s" % baseclass_name)
             else:
                 f(self, *args, **kwargs)
+
         return wrapper
+
     return decorate
 
 
-class BaseClass():
+class BaseClass:
     class RESTEndpointTest(APITestCase):
         def __init__(self, *args, **kwargs):
             APITestCase.__init__(self, *args, **kwargs)
-            self.view_mixins = list(map(
-                (lambda x: x.__name__), self.viewset.__bases__))
+            self.view_mixins = list(
+                map((lambda x: x.__name__), self.viewset.__bases__))
 
         def setUp(self):
-            testuser = User.objects.get(username='admin')
+            testuser = User.objects.get(username="admin")
             token = Token.objects.get(user=testuser)
             self.client = APIClient()
-            self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
-            self.url = reverse(self.viewname + '-list')
+            self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
+            self.url = reverse(self.viewname + "-list")
 
-        @skipIfNotSubclass('ListModelMixin')
+        @skipIfNotSubclass("ListModelMixin")
         def test_list(self):
-            response = self.client.get(self.url, format='json')
+            response = self.client.get(self.url, format="json")
             self.assertEqual(200, response.status_code)
 
-        @skipIfNotSubclass('CreateModelMixin')
+        @skipIfNotSubclass("CreateModelMixin")
         def test_create(self):
             length = self.endpoint_model.objects.count()
             response = self.client.post(self.url, self.payload)
             self.assertEqual(201, response.status_code, response.data)
             self.assertEqual(self.endpoint_model.objects.count(), length + 1)
 
-        @skipIfNotSubclass('RetrieveModelMixin')
+        @skipIfNotSubclass("RetrieveModelMixin")
         def test_detail(self):
-            current_objects = self.client.get(self.url, format='json').data
-            relative_url = self.url + '%s/' % current_objects['results'][0]['id']
+            current_objects = self.client.get(self.url, format="json").data
+            relative_url = self.url + "%s/" % current_objects["results"][0][
+                "id"]
             response = self.client.get(relative_url)
             self.assertEqual(200, response.status_code)
 
-        @skipIfNotSubclass('DestroyModelMixin')
+        @skipIfNotSubclass("DestroyModelMixin")
         def test_delete(self):
-            current_objects = self.client.get(self.url, format='json').data
-            relative_url = self.url + '%s/' % current_objects['results'][0]['id']
+            current_objects = self.client.get(self.url, format="json").data
+            relative_url = self.url + "%s/" % current_objects["results"][0][
+                "id"]
             response = self.client.delete(relative_url)
             self.assertEqual(204, response.status_code)
 
-        @skipIfNotSubclass('UpdateModelMixin')
+        @skipIfNotSubclass("UpdateModelMixin")
         def test_update(self):
-            current_objects = self.client.get(self.url, format='json').data
-            relative_url = self.url + '%s/' % current_objects['results'][0]['id']
-            response = self.client.patch(
-                relative_url, self.update_fields)
+            current_objects = self.client.get(self.url, format="json").data
+            relative_url = self.url + "%s/" % current_objects["results"][0][
+                "id"]
+            response = self.client.patch(relative_url, self.update_fields)
             for key, value in self.update_fields.items():
                 self.assertEqual(value, response.data[key])
-            response = self.client.put(
-                relative_url, self.payload)
+            response = self.client.put(relative_url, self.payload)
             self.assertEqual(200, response.status_code)
 
 
 class EndpointTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Endpoint
-        self.viewname = 'endpoint'
+        self.viewname = "endpoint"
         self.viewset = EndPointViewSet
         self.payload = {
-            'protocol': 'http',
-            'host': '127.0.0.1',
-            'path': '/',
-            'query': 'test=true',
-            'fragment': 'test-1',
-            'product': 1,
+            "protocol": "http",
+            "host": "127.0.0.1",
+            "path": "/",
+            "query": "test=true",
+            "fragment": "test-1",
+            "product": 1,
         }
-        self.update_fields = {'protocol': 'ftp'}
+        self.update_fields = {"protocol": "ftp"}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class EngagementTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Engagement
-        self.viewname = 'engagement'
+        self.viewname = "engagement"
         self.viewset = EngagementViewSet
         self.payload = {
             "eng_type": 1,
@@ -111,23 +141,23 @@ class EngagementTest(BaseClass.RESTEndpointTest):
             "name": "",
             "description": "",
             "version": "",
-            "target_start": '1937-01-01',
-            "target_end": '1937-01-01',
+            "target_start": "1937-01-01",
+            "target_end": "1937-01-01",
             "reason": "",
             "test_strategy": "",
             "product": "1",
-            "tags": ["mytag"]
+            "tags": ["mytag"],
         }
-        self.update_fields = {'version': 'latest'}
+        self.update_fields = {"version": "latest"}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class FindingsTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Finding
-        self.viewname = 'finding'
+        self.viewname = "finding"
         self.viewset = FindingViewSet
         self.payload = {
             "review_requested_by": 2,
@@ -160,17 +190,18 @@ class FindingsTest(BaseClass.RESTEndpointTest):
             "static_finding": False,
             "dynamic_finding": False,
             "endpoints": [1, 2],
-            "images": []}
-        self.update_fields = {'active': True}
+            "images": [],
+        }
+        self.update_fields = {"active": True}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class FindingTemplatesTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Finding_Template
-        self.viewname = 'finding_template'
+        self.viewname = "finding_template"
         self.viewset = FindingTemplatesViewSet
         self.payload = {
             "title": "Test template",
@@ -181,16 +212,16 @@ class FindingTemplatesTest(BaseClass.RESTEndpointTest):
             "impact": "MEDIUM",
             "references": "",
         }
-        self.update_fields = {'references': 'some reference'}
+        self.update_fields = {"references": "some reference"}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class JiraConfigurationsTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = JIRA_Conf
-        self.viewname = 'jira_conf'
+        self.viewname = "jira_conf"
         self.viewset = JiraConfigurationsViewSet
         self.payload = {
             "url": "http://www.example.com",
@@ -205,18 +236,18 @@ class JiraConfigurationsTest(BaseClass.RESTEndpointTest):
             "medium_mapping_severity": "LOW",
             "high_mapping_severity": "LOW",
             "critical_mapping_severity": "LOW",
-            "finding_text": ""
+            "finding_text": "",
         }
-        self.update_fields = {'epic_name_id': 1}
+        self.update_fields = {"epic_name_id": 1}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class JiraIssuesTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = JIRA_Issue
-        self.viewname = 'jira_issue'
+        self.viewname = "jira_issue"
         self.viewset = JiraIssuesViewSet
         self.payload = {
             "jira_id": "JIRA 1",
@@ -224,16 +255,16 @@ class JiraIssuesTest(BaseClass.RESTEndpointTest):
             "finding": 2,
             "engagement": 2,
         }
-        self.update_fields = {'finding': 2}
+        self.update_fields = {"finding": 2}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class JiraTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = JIRA_PKey
-        self.viewname = 'jira_pkey'
+        self.viewname = "jira_pkey"
         self.viewset = JiraViewSet
         self.payload = {
             "project_key": "TEST KEY",
@@ -244,16 +275,16 @@ class JiraTest(BaseClass.RESTEndpointTest):
             "product": 1,
             "conf": 2,
         }
-        self.update_fields = {'conf': 3}
+        self.update_fields = {"conf": 3}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class ProductTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Product
-        self.viewname = 'product'
+        self.viewname = "product"
         self.viewset = ProductViewSet
         self.payload = {
             "product_manager": 2,
@@ -263,18 +294,18 @@ class ProductTest(BaseClass.RESTEndpointTest):
             "prod_type": 1,
             "name": "Test Product",
             "description": "test product",
-            "tags": ["mytag"]
+            "tags": ["mytag"],
         }
-        self.update_fields = {'prod_type': 2}
+        self.update_fields = {"prod_type": 2}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class ScanSettingsTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = ScanSettings
-        self.viewname = 'scansettings'
+        self.viewname = "scansettings"
         self.viewset = ScanSettingsViewSet
         self.payload = {
             "addresses": "127.0.0.1",
@@ -284,26 +315,26 @@ class ScanSettingsTest(BaseClass.RESTEndpointTest):
             "product": 1,
             "user": 3,
         }
-        self.update_fields = {'protocol': 'ftp'}
+        self.update_fields = {"protocol": "ftp"}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class ScansTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Scan
-        self.viewname = 'scan'
+        self.viewname = "scan"
         self.viewset = ScansViewSet
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class StubFindingsTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Stub_Finding
-        self.viewname = 'stub_finding'
+        self.viewname = "stub_finding"
         self.viewset = StubFindingsViewSet
         self.payload = {
             "title": "Stub Finding 1",
@@ -313,16 +344,16 @@ class StubFindingsTest(BaseClass.RESTEndpointTest):
             "reporter": 3,
             "test": 3,
         }
-        self.update_fields = {'severity': 'LOW'}
+        self.update_fields = {"severity": "LOW"}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class TestsTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Test
-        self.viewname = 'test'
+        self.viewname = "test"
         self.viewset = TestsViewSet
         self.payload = {
             "test_type": 1,
@@ -336,16 +367,16 @@ class TestsTest(BaseClass.RESTEndpointTest):
             "percent_complete": 0,
             "lead": 2,
         }
-        self.update_fields = {'percent_complete': 100}
+        self.update_fields = {"percent_complete": 100}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class ToolConfigurationsTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Tool_Configuration
-        self.viewname = 'tool_configuration'
+        self.viewname = "tool_configuration"
         self.viewset = ToolConfigurationsViewSet
         self.payload = {
             "configuration_url": "http://www.example.com",
@@ -359,16 +390,16 @@ class ToolConfigurationsTest(BaseClass.RESTEndpointTest):
             "api_key": "test key",
             "tool_type": 1,
         }
-        self.update_fields = {'ssh': 'test string'}
+        self.update_fields = {"ssh": "test string"}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class ToolProductSettingsTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Tool_Product_Settings
-        self.viewname = 'tool_product_settings'
+        self.viewname = "tool_product_settings"
         self.viewset = ToolProductSettingsViewSet
         self.payload = {
             "setting_url": "http://www.example.com",
@@ -377,109 +408,103 @@ class ToolProductSettingsTest(BaseClass.RESTEndpointTest):
             "tool_project_id": "1",
             "tool_configuration": 3,
         }
-        self.update_fields = {'tool_project_id': '2'}
+        self.update_fields = {"tool_project_id": "2"}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class ToolTypesTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Tool_Type
-        self.viewname = 'tool_type'
+        self.viewname = "tool_type"
         self.viewset = ToolTypesViewSet
-        self.payload = {
-            "name": "Tool Type",
-            "description": "test tool type"
-        }
-        self.update_fields = {'description': 'changed description'}
+        self.payload = {"name": "Tool Type", "description": "test tool type"}
+        self.update_fields = {"description": "changed description"}
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class UsersTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = User
-        self.viewname = 'user'
+        self.viewname = "user"
         self.viewset = UsersViewSet
         BaseClass.RESTEndpointTest.__init__(self, *args, **kwargs)
 
 
 class ProductPermissionTest(APITestCase):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def setUp(self):
-        testuser = User.objects.get(username='user1')
+        testuser = User.objects.get(username="user1")
         token = Token.objects.get(user=testuser)
         self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
 
     def test_user_should_not_have_access_to_product_3_in_list(self):
-        response = self.client.get(
-            reverse('product-list'), format='json')
-        for obj in response.data['results']:
-            self.assertNotEqual(obj['id'], 3)
+        response = self.client.get(reverse("product-list"), format="json")
+        for obj in response.data["results"]:
+            self.assertNotEqual(obj["id"], 3)
 
     def test_user_should_not_have_access_to_product_3_in_detail(self):
-        response = self.client.get('http://testserver/api/v2/products/3/')
+        response = self.client.get("http://testserver/api/v2/products/3/")
         self.assertEqual(response.status_code, 404)
 
 
 class ScanSettingsPermissionTest(APITestCase):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def setUp(self):
-        testuser = User.objects.get(username='user1')
+        testuser = User.objects.get(username="user1")
         token = Token.objects.get(user=testuser)
         self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
 
     def test_user_should_not_have_access_to_setting_3_in_list(self):
-        response = self.client.get(
-            reverse('scansettings-list'), format='json')
-        for obj in response.data['results']:
-            self.assertNotEqual(obj['id'], 3)
+        response = self.client.get(reverse("scansettings-list"), format="json")
+        for obj in response.data["results"]:
+            self.assertNotEqual(obj["id"], 3)
 
     def test_user_should_not_have_access_to_setting_3_in_detail(self):
-        response = self.client.get('http://testserver/api/v2/scan_settings/3/')
+        response = self.client.get("http://testserver/api/v2/scan_settings/3/")
         self.assertEqual(response.status_code, 404)
 
 
 class ScansPermissionTest(APITestCase):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def setUp(self):
-        testuser = User.objects.get(username='user1')
+        testuser = User.objects.get(username="user1")
         token = Token.objects.get(user=testuser)
         self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
 
     def test_user_should_not_have_access_to_scan_3_in_list(self):
-        response = self.client.get(
-            reverse('scan-list'), format='json')
-        for obj in response.data['results']:
-            self.assertNotEqual(obj['id'], 3)
+        response = self.client.get(reverse("scan-list"), format="json")
+        for obj in response.data["results"]:
+            self.assertNotEqual(obj["id"], 3)
 
     def test_user_should_not_have_access_to_scan_3_in_detail(self):
-        response = self.client.get('http://testserver/api/v2/scans/3/')
+        response = self.client.get("http://testserver/api/v2/scans/3/")
         self.assertEqual(response.status_code, 404)
 
 
 class ImportScanTest(BaseClass.RESTEndpointTest):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def __init__(self, *args, **kwargs):
         self.endpoint_model = Test
-        self.viewname = 'importscan'
+        self.viewname = "importscan"
         self.viewset = ImportScanView
         self.payload = {
-            "scan_date": '2017-12-30',
-            "minimum_severity": 'Low',
+            "scan_date": "2017-12-30",
+            "minimum_severity": "Low",
             "active": False,
             "verified": True,
-            "scan_type": 'ZAP Scan',
-            "file": open('tests/zap_sample.xml'),
+            "scan_type": "ZAP Scan",
+            "file": open("tests/zap_sample.xml"),
             "engagement": 1,
             "lead": 2,
         }
@@ -487,25 +512,27 @@ class ImportScanTest(BaseClass.RESTEndpointTest):
 
 
 class ReimportScanTest(APITestCase):
-    fixtures = ['dojo_testdata.json']
+    fixtures = ["dojo_testdata.json"]
 
     def setUp(self):
-        testuser = User.objects.get(username='admin')
+        testuser = User.objects.get(username="admin")
         token = Token.objects.get(user=testuser)
         self.client = APIClient()
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token.key)
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + token.key)
 
     def test_import_zap_xml(self):
         length = Test.objects.all().count()
         response = self.client.post(
-            reverse('reimportscan-list'), {
-                "scan_date": '2017-12-30',
-                "minimum_severity": 'Low',
+            reverse("reimportscan-list"),
+            {
+                "scan_date": "2017-12-30",
+                "minimum_severity": "Low",
                 "active": True,
                 "verified": True,
-                "scan_type": 'ZAP Scan',
-                "file": open('tests/zap_sample.xml'),
+                "scan_type": "ZAP Scan",
+                "file": open("tests/zap_sample.xml"),
                 "test": 3,
-            })
+            },
+        )
         self.assertEqual(length, Test.objects.all().count())
         self.assertEqual(201, response.status_code)

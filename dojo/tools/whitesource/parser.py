@@ -2,7 +2,7 @@ import hashlib
 import json
 from dojo.models import Finding
 
-__author__ = 'dr3dd589'
+__author__ = "dr3dd589"
 
 
 class WhitesourceJSONParser(object):
@@ -14,31 +14,39 @@ class WhitesourceJSONParser(object):
 
         data = file.read()
         try:
-            content = json.loads(str(data, 'utf-8'))
+            content = json.loads(str(data, "utf-8"))
         except:
             content = json.loads(data)
         if "vulnerabilities" in content:
-            tree_node = content['vulnerabilities']
+            tree_node = content["vulnerabilities"]
             for node in tree_node:
-                title = node['name'] + " | " + node['project']
-                severity = node['severity'].lower().capitalize()
-                description = "**Description** : " + node['description'] + "\n\n" + \
-                            "**Library Name** : " + node['library']['name'] + "\n\n" + \
-                            "**Library Filename** : " + node['library']['filename'] + "\n\n" + \
-                            "**Library Description** : " + node['library']['description'] + "\n\n" + \
-                            "**Library Type** : " + node['library']['type'] + "\n"
+                title = node["name"] + " | " + node["project"]
+                severity = node["severity"].lower().capitalize()
+                description = ("**Description** : " + node["description"] +
+                               "\n\n" + "**Library Name** : " +
+                               node["library"]["name"] + "\n\n" +
+                               "**Library Filename** : " +
+                               node["library"]["filename"] + "\n\n" +
+                               "**Library Description** : " +
+                               node["library"]["description"] + "\n\n" +
+                               "**Library Type** : " +
+                               node["library"]["type"] + "\n")
                 try:
-                    mitigation = "**fixResolution** : " + node['topFix']['fixResolution'] + "\n" + \
-                                "**Message** : " + node['topFix']['message'] + "\n"
+                    mitigation = ("**fixResolution** : " +
+                                  node["topFix"]["fixResolution"] + "\n" +
+                                  "**Message** : " +
+                                  node["topFix"]["message"] + "\n")
                 except:
                     mitigation = "N/A"
 
-                if "CVE" in node['type']:
-                    cve = node['name']
+                if "CVE" in node["type"]:
+                    cve = node["name"]
                 else:
                     cve = None
 
-                dupe_key = hashlib.md5(description.encode('utf-8') + title.encode('utf-8')).hexdigest()
+                dupe_key = hashlib.md5(
+                    description.encode("utf-8") +
+                    title.encode("utf-8")).hexdigest()
 
                 if dupe_key in self.dupes:
                     finding = self.dupes[dupe_key]
@@ -48,17 +56,19 @@ class WhitesourceJSONParser(object):
                 else:
                     self.dupes[dupe_key] = True
 
-                    finding = Finding(title=title,
-                                    test=test,
-                                    active=False,
-                                    verified=False,
-                                    description=description,
-                                    severity=severity,
-                                    cve=cve,
-                                    mitigation=mitigation,
-                                    numerical_severity=Finding.get_numerical_severity(
-                                        severity),
-                                    dynamic_finding=True)
+                    finding = Finding(
+                        title=title,
+                        test=test,
+                        active=False,
+                        verified=False,
+                        description=description,
+                        severity=severity,
+                        cve=cve,
+                        mitigation=mitigation,
+                        numerical_severity=Finding.get_numerical_severity(
+                            severity),
+                        dynamic_finding=True,
+                    )
                     self.dupes[dupe_key] = finding
 
             self.items = self.dupes.values()

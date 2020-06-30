@@ -18,12 +18,47 @@ from django.contrib.admin.utils import NestedObjects
 from django.db import DEFAULT_DB_ALIAS
 from dojo.templatetags.display_tags import get_level
 from dojo.filters import ProductFilter, ProductFindingFilter, EngagementFilter
-from dojo.forms import ProductForm, EngForm, DeleteProductForm, DojoMetaDataForm, JIRAPKeyForm, JIRAFindingForm, AdHocFindingForm, \
-                       EngagementPresetsForm, DeleteEngagementPresetsForm
-from dojo.models import Product_Type, Finding, Product, Engagement, ScanSettings, Risk_Acceptance, Test, JIRA_PKey, Finding_Template, \
-    Tool_Product_Settings, Cred_Mapping, Test_Type, System_Settings, Languages, App_Analysis, Benchmark_Type, Benchmark_Product_Summary, \
-    Endpoint, Engagement_Presets, DojoMeta
-from dojo.utils import get_page_items, add_breadcrumb, get_punchcard_data, get_system_setting, create_notification, Product_Tab
+from dojo.forms import (
+    ProductForm,
+    EngForm,
+    DeleteProductForm,
+    DojoMetaDataForm,
+    JIRAPKeyForm,
+    JIRAFindingForm,
+    AdHocFindingForm,
+    EngagementPresetsForm,
+    DeleteEngagementPresetsForm,
+)
+from dojo.models import (
+    Product_Type,
+    Finding,
+    Product,
+    Engagement,
+    ScanSettings,
+    Risk_Acceptance,
+    Test,
+    JIRA_PKey,
+    Finding_Template,
+    Tool_Product_Settings,
+    Cred_Mapping,
+    Test_Type,
+    System_Settings,
+    Languages,
+    App_Analysis,
+    Benchmark_Type,
+    Benchmark_Product_Summary,
+    Endpoint,
+    Engagement_Presets,
+    DojoMeta,
+)
+from dojo.utils import (
+    get_page_items,
+    add_breadcrumb,
+    get_punchcard_data,
+    get_system_setting,
+    create_notification,
+    Product_Tab,
+)
 from custom_field.models import CustomFieldValue, CustomField
 from dojo.tasks import add_epic_task, add_issue_task
 from tagging.models import Tag
@@ -35,20 +70,20 @@ logger = logging.getLogger(__name__)
 def product(request):
     if request.user.is_staff:
         initial_queryset = Product.objects.all()
-        name_words = [product.name for product in
-                      Product.objects.all()]
+        name_words = [product.name for product in Product.objects.all()]
     else:
         initial_queryset = Product.objects.filter(
             authorized_users__in=[request.user])
-        name_words = [word for product in
-                      Product.objects.filter(
-                          authorized_users__in=[request.user])
-                      for word in product.name.split() if len(word) > 2]
+        name_words = [
+            word for product in Product.objects.filter(
+                authorized_users__in=[request.user])
+            for word in product.name.split() if len(word) > 2
+        ]
 
     product_type = None
 
-    if 'prod_type' in request.GET:
-        p = request.GET.getlist('prod_type', [])
+    if "prod_type" in request.GET:
+        p = request.GET.getlist("prod_type", [])
         if len(p) == 1:
             product_type = get_object_or_404(Product_Type, id=p[0])
     """
@@ -56,15 +91,23 @@ def product(request):
         tags = request.GET.getlist('tags', [])
         initial_queryset = TaggedItem.objects.get_by_model(initial_queryset, Tag.objects.filter(name__in=tags))
     """
-    prods = ProductFilter(request.GET, queryset=initial_queryset, user=request.user)
+    prods = ProductFilter(request.GET,
+                          queryset=initial_queryset,
+                          user=request.user)
     prod_list = get_page_items(request, prods.qs, 25)
-    add_breadcrumb(title="Product List", top_level=not len(request.GET), request=request)
-    return render(request,
-                  'dojo/product.html',
-                  {'prod_list': prod_list,
-                   'prods': prods,
-                   'name_words': sorted(set(name_words)),
-                   'user': request.user})
+    add_breadcrumb(title="Product List",
+                   top_level=not len(request.GET),
+                   request=request)
+    return render(
+        request,
+        "dojo/product.html",
+        {
+            "prod_list": prod_list,
+            "prods": prods,
+            "name_words": sorted(set(name_words)),
+            "user": request.user,
+        },
+    )
 
 
 def iso_to_gregorian(iso_year, iso_week, iso_day):
@@ -79,25 +122,35 @@ def view_product(request, pid):
     if not auth:
         # will render 403
         raise PermissionDenied
-    langSummary = Languages.objects.filter(product=prod).aggregate(Sum('files'), Sum('code'), Count('files'))
-    languages = Languages.objects.filter(product=prod).order_by('-code')
-    app_analysis = App_Analysis.objects.filter(product=prod).order_by('name')
-    benchmark_type = Benchmark_Type.objects.filter(enabled=True).order_by('name')
-    benchmarks = Benchmark_Product_Summary.objects.filter(product=prod, publish=True, benchmark_type__enabled=True).order_by('benchmark_type__name')
+    langSummary = Languages.objects.filter(product=prod).aggregate(
+        Sum("files"), Sum("code"), Count("files"))
+    languages = Languages.objects.filter(product=prod).order_by("-code")
+    app_analysis = App_Analysis.objects.filter(product=prod).order_by("name")
+    benchmark_type = Benchmark_Type.objects.filter(
+        enabled=True).order_by("name")
+    benchmarks = Benchmark_Product_Summary.objects.filter(
+        product=prod, publish=True,
+        benchmark_type__enabled=True).order_by("benchmark_type__name")
     benchAndPercent = []
     for i in range(0, len(benchmarks)):
-        benchAndPercent.append([benchmarks[i].benchmark_type, get_level(benchmarks[i])])
+        benchAndPercent.append(
+            [benchmarks[i].benchmark_type,
+             get_level(benchmarks[i])])
 
     system_settings = System_Settings.objects.get()
 
-    product_metadata = dict(prod.product_meta.order_by('name').values_list('name', 'value'))
+    product_metadata = dict(
+        prod.product_meta.order_by("name").values_list("name", "value"))
 
-    verified_findings = Finding.objects.filter(test__engagement__product=prod,
-                                                false_p=False,
-                                                verified=True,
-                                                active=True,
-                                                duplicate=False,
-                                                out_of_scope=False).order_by('numerical_severity').values('severity').annotate(count=Count('severity'))
+    verified_findings = (Finding.objects.filter(
+        test__engagement__product=prod,
+        false_p=False,
+        verified=True,
+        active=True,
+        duplicate=False,
+        out_of_scope=False,
+    ).order_by("numerical_severity").values("severity").annotate(
+        count=Count("severity")))
 
     critical = 0
     high = 0
@@ -120,24 +173,29 @@ def view_product(request, pid):
     total = critical + high + medium + low + info
 
     product_tab = Product_Tab(pid, title="Product", tab="overview")
-    return render(request, 'dojo/view_product_details.html', {
-                  'prod': prod,
-                  'product_tab': product_tab,
-                  'product_metadata': product_metadata,
-                  'critical': critical,
-                  'high': high,
-                  'medium': medium,
-                  'low': low,
-                  'info': info,
-                  'total': total,
-                  'user': request.user,
-                  'languages': languages,
-                  'langSummary': langSummary,
-                  'app_analysis': app_analysis,
-                  'system_settings': system_settings,
-                  'benchmarks_percents': benchAndPercent,
-                  'benchmarks': benchmarks,
-                  'authorized': auth})
+    return render(
+        request,
+        "dojo/view_product_details.html",
+        {
+            "prod": prod,
+            "product_tab": product_tab,
+            "product_metadata": product_metadata,
+            "critical": critical,
+            "high": high,
+            "medium": medium,
+            "low": low,
+            "info": info,
+            "total": total,
+            "user": request.user,
+            "languages": languages,
+            "langSummary": langSummary,
+            "app_analysis": app_analysis,
+            "system_settings": system_settings,
+            "benchmarks_percents": benchAndPercent,
+            "benchmarks": benchmarks,
+            "authorized": auth,
+        },
+    )
 
 
 def view_product_metrics(request, pid):
@@ -146,7 +204,9 @@ def view_product_metrics(request, pid):
 
     result = EngagementFilter(
         request.GET,
-        queryset=Engagement.objects.filter(product=prod, active=False).order_by('-target_end'))
+        queryset=Engagement.objects.filter(
+            product=prod, active=False).order_by("-target_end"),
+    )
 
     i_engs_page = get_page_items(request, result.qs, 10)
 
@@ -167,7 +227,8 @@ def view_product_metrics(request, pid):
             product_metadata[cf.name] = cfv[0].value
 
     try:
-        start_date = Finding.objects.filter(test__engagement__product=prod).order_by('date')[:1][0].date
+        start_date = (Finding.objects.filter(
+            test__engagement__product=prod).order_by("date")[:1][0].date)
     except:
         start_date = timezone.now()
 
@@ -175,45 +236,57 @@ def view_product_metrics(request, pid):
 
     tests = Test.objects.filter(engagement__product=prod)
 
-    risk_acceptances = Risk_Acceptance.objects.filter(engagement__in=Engagement.objects.filter(product=prod))
+    risk_acceptances = Risk_Acceptance.objects.filter(
+        engagement__in=Engagement.objects.filter(product=prod))
 
-    accepted_findings = [finding for ra in risk_acceptances
-                         for finding in ra.accepted_findings.all()]
+    accepted_findings = [
+        finding for ra in risk_acceptances
+        for finding in ra.accepted_findings.all()
+    ]
 
-    verified_findings = Finding.objects.filter(test__engagement__product=prod,
-                                               date__range=[start_date, end_date],
-                                               false_p=False,
-                                               verified=True,
-                                               duplicate=False,
-                                               out_of_scope=False).order_by("date")
+    verified_findings = Finding.objects.filter(
+        test__engagement__product=prod,
+        date__range=[start_date, end_date],
+        false_p=False,
+        verified=True,
+        duplicate=False,
+        out_of_scope=False,
+    ).order_by("date")
 
-    week_date = end_date - timedelta(days=7)  # seven days and /newnewer are considered "new"
+    week_date = end_date - timedelta(
+        days=7)  # seven days and /newnewer are considered "new"
 
-    new_verified_findings = Finding.objects.filter(test__engagement__product=prod,
-                                                   date__range=[week_date, end_date],
-                                                   false_p=False,
-                                                   verified=True,
-                                                   duplicate=False,
-                                                   out_of_scope=False).order_by("date")
+    new_verified_findings = Finding.objects.filter(
+        test__engagement__product=prod,
+        date__range=[week_date, end_date],
+        false_p=False,
+        verified=True,
+        duplicate=False,
+        out_of_scope=False,
+    ).order_by("date")
 
-    open_findings = Finding.objects.filter(test__engagement__product=prod,
-                                           date__range=[start_date, end_date],
-                                           false_p=False,
-                                           verified=True,
-                                           duplicate=False,
-                                           out_of_scope=False,
-                                           active=True,
-                                           mitigated__isnull=True)
+    open_findings = Finding.objects.filter(
+        test__engagement__product=prod,
+        date__range=[start_date, end_date],
+        false_p=False,
+        verified=True,
+        duplicate=False,
+        out_of_scope=False,
+        active=True,
+        mitigated__isnull=True,
+    )
 
-    closed_findings = Finding.objects.filter(test__engagement__product=prod,
-                                             date__range=[start_date, end_date],
-                                             false_p=False,
-                                             verified=True,
-                                             duplicate=False,
-                                             out_of_scope=False,
-                                             mitigated__isnull=False)
+    closed_findings = Finding.objects.filter(
+        test__engagement__product=prod,
+        date__range=[start_date, end_date],
+        false_p=False,
+        verified=True,
+        duplicate=False,
+        out_of_scope=False,
+        mitigated__isnull=False,
+    )
 
-    open_vulnerabilities = Finding.objects.filter(
+    open_vulnerabilities = (Finding.objects.filter(
         test__engagement__product=prod,
         false_p=False,
         verified=True,
@@ -221,29 +294,24 @@ def view_product_metrics(request, pid):
         out_of_scope=False,
         active=True,
         mitigated__isnull=True,
-    ).order_by('cwe').values(
-        'cwe'
-    ).annotate(
-        count=Count('cwe')
-    )
+    ).order_by("cwe").values("cwe").annotate(count=Count("cwe")))
 
-    all_vulnerabilities = Finding.objects.filter(
+    all_vulnerabilities = (Finding.objects.filter(
         test__engagement__product=prod,
         duplicate=False,
-    ).order_by('cwe').values(
-        'cwe'
-    ).annotate(
-        count=Count('cwe')
-    )
+    ).order_by("cwe").values("cwe").annotate(count=Count("cwe")))
 
-    start_date = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
+    start_date = timezone.make_aware(
+        datetime.combine(start_date, datetime.min.time()))
 
     r = relativedelta(end_date, start_date)
-    weeks_between = int(ceil((((r.years * 12) + r.months) * 4.33) + (r.days / 7)))
+    weeks_between = int(
+        ceil((((r.years * 12) + r.months) * 4.33) + (r.days / 7)))
     if weeks_between <= 0:
         weeks_between += 2
 
-    punchcard, ticks, highest_count = get_punchcard_data(verified_findings, weeks_between, start_date)
+    punchcard, ticks, highest_count = get_punchcard_data(
+        verified_findings, weeks_between, start_date)
     add_breadcrumb(parent=prod, top_level=False, request=request)
 
     open_close_weekly = OrderedDict()
@@ -257,26 +325,26 @@ def view_product_metrics(request, pid):
         iso_cal = v.date.isocalendar()
         x = iso_to_gregorian(iso_cal[0], iso_cal[1], 1)
         y = x.strftime("<span class='small'>%m/%d<br/>%Y</span>")
-        x = (tcalendar.timegm(x.timetuple()) * 1000)
+        x = tcalendar.timegm(x.timetuple()) * 1000
         if x not in critical_weekly:
-            critical_weekly[x] = {'count': 0, 'week': y}
+            critical_weekly[x] = {"count": 0, "week": y}
         if x not in high_weekly:
-            high_weekly[x] = {'count': 0, 'week': y}
+            high_weekly[x] = {"count": 0, "week": y}
         if x not in medium_weekly:
-            medium_weekly[x] = {'count': 0, 'week': y}
+            medium_weekly[x] = {"count": 0, "week": y}
 
         if x in open_close_weekly:
             if v.mitigated:
-                open_close_weekly[x]['closed'] += 1
+                open_close_weekly[x]["closed"] += 1
             else:
-                open_close_weekly[x]['open'] += 1
+                open_close_weekly[x]["open"] += 1
         else:
 
             if v.mitigated:
-                open_close_weekly[x] = {'closed': 1, 'open': 0, 'accepted': 0}
+                open_close_weekly[x] = {"closed": 1, "open": 0, "accepted": 0}
             else:
-                open_close_weekly[x] = {'closed': 0, 'open': 1, 'accepted': 0}
-            open_close_weekly[x]['week'] = y
+                open_close_weekly[x] = {"closed": 0, "open": 1, "accepted": 0}
+            open_close_weekly[x]["week"] = y
 
         if x in severity_weekly:
             if v.severity in severity_weekly[x]:
@@ -284,38 +352,43 @@ def view_product_metrics(request, pid):
             else:
                 severity_weekly[x][v.severity] = 1
         else:
-            severity_weekly[x] = {'Critical': 0, 'High': 0,
-                                  'Medium': 0, 'Low': 0, 'Info': 0}
+            severity_weekly[x] = {
+                "Critical": 0,
+                "High": 0,
+                "Medium": 0,
+                "Low": 0,
+                "Info": 0,
+            }
             severity_weekly[x][v.severity] = 1
-            severity_weekly[x]['week'] = y
+            severity_weekly[x]["week"] = y
 
-        if v.severity == 'Critical':
+        if v.severity == "Critical":
             if x in critical_weekly:
-                critical_weekly[x]['count'] += 1
+                critical_weekly[x]["count"] += 1
             else:
-                critical_weekly[x] = {'count': 1, 'week': y}
-        elif v.severity == 'High':
+                critical_weekly[x] = {"count": 1, "week": y}
+        elif v.severity == "High":
             if x in high_weekly:
-                high_weekly[x]['count'] += 1
+                high_weekly[x]["count"] += 1
             else:
-                high_weekly[x] = {'count': 1, 'week': y}
-        elif v.severity == 'Medium':
+                high_weekly[x] = {"count": 1, "week": y}
+        elif v.severity == "Medium":
             if x in medium_weekly:
-                medium_weekly[x]['count'] += 1
+                medium_weekly[x]["count"] += 1
             else:
-                medium_weekly[x] = {'count': 1, 'week': y}
+                medium_weekly[x] = {"count": 1, "week": y}
 
     for a in accepted_findings:
         iso_cal = a.date.isocalendar()
         x = iso_to_gregorian(iso_cal[0], iso_cal[1], 1)
         y = x.strftime("<span class='small'>%m/%d<br/>%Y</span>")
-        x = (tcalendar.timegm(x.timetuple()) * 1000)
+        x = tcalendar.timegm(x.timetuple()) * 1000
 
         if x in open_close_weekly:
-            open_close_weekly[x]['accepted'] += 1
+            open_close_weekly[x]["accepted"] += 1
         else:
-            open_close_weekly[x] = {'closed': 0, 'open': 0, 'accepted': 1}
-            open_close_weekly[x]['week'] = y
+            open_close_weekly[x] = {"closed": 0, "open": 0, "accepted": 1}
+            open_close_weekly[x]["week"] = y
 
     test_data = {}
     for t in tests:
@@ -325,33 +398,37 @@ def view_product_metrics(request, pid):
             test_data[t.test_type.name] = t.verified_finding_count()
 
     product_tab = Product_Tab(pid, title="Product", tab="metrics")
-    return render(request,
-                  'dojo/product_metrics.html',
-                  {'prod': prod,
-                   'product_tab': product_tab,
-                   'product_metadata': product_metadata,
-                   'engs': engs,
-                   'i_engs': i_engs_page,
-                   'scan_sets': scan_sets,
-                   'verified_findings': verified_findings,
-                   'open_findings': open_findings,
-                   'closed_findings': closed_findings,
-                   'accepted_findings': accepted_findings,
-                   'new_findings': new_verified_findings,
-                   'open_vulnerabilities': open_vulnerabilities,
-                   'all_vulnerabilities': all_vulnerabilities,
-                   'start_date': start_date,
-                   'punchcard': punchcard,
-                   'ticks': ticks,
-                   'highest_count': highest_count,
-                   'open_close_weekly': open_close_weekly,
-                   'severity_weekly': severity_weekly,
-                   'critical_weekly': critical_weekly,
-                   'high_weekly': high_weekly,
-                   'medium_weekly': medium_weekly,
-                   'test_data': test_data,
-                   'user': request.user,
-                   'authorized': auth})
+    return render(
+        request,
+        "dojo/product_metrics.html",
+        {
+            "prod": prod,
+            "product_tab": product_tab,
+            "product_metadata": product_metadata,
+            "engs": engs,
+            "i_engs": i_engs_page,
+            "scan_sets": scan_sets,
+            "verified_findings": verified_findings,
+            "open_findings": open_findings,
+            "closed_findings": closed_findings,
+            "accepted_findings": accepted_findings,
+            "new_findings": new_verified_findings,
+            "open_vulnerabilities": open_vulnerabilities,
+            "all_vulnerabilities": all_vulnerabilities,
+            "start_date": start_date,
+            "punchcard": punchcard,
+            "ticks": ticks,
+            "highest_count": highest_count,
+            "open_close_weekly": open_close_weekly,
+            "severity_weekly": severity_weekly,
+            "critical_weekly": critical_weekly,
+            "high_weekly": high_weekly,
+            "medium_weekly": medium_weekly,
+            "test_data": test_data,
+            "user": request.user,
+            "authorized": auth,
+        },
+    )
 
 
 def view_engagements(request, pid, engagement_type="Interactive"):
@@ -365,42 +442,70 @@ def view_engagements(request, pid, engagement_type="Interactive"):
     # In Progress Engagements
     result_engs = EngagementFilter(
         request.GET,
-        queryset=Engagement.objects.filter(product=prod, active=True, status="In Progress", engagement_type=engagement_type).order_by('-updated'))
+        queryset=Engagement.objects.filter(
+            product=prod,
+            active=True,
+            status="In Progress",
+            engagement_type=engagement_type,
+        ).order_by("-updated"),
+    )
 
-    engs = get_page_items(request, result_engs.qs, default_page_num, param_name="engs")
+    engs = get_page_items(request,
+                          result_engs.qs,
+                          default_page_num,
+                          param_name="engs")
 
     # Engagements that are queued because they haven't started or paused
     queued_engs = EngagementFilter(
         request.GET,
-        queryset=Engagement.objects.filter(~Q(status="In Progress"), product=prod, active=True, engagement_type=engagement_type).order_by('-updated'))
+        queryset=Engagement.objects.filter(
+            ~Q(status="In Progress"),
+            product=prod,
+            active=True,
+            engagement_type=engagement_type,
+        ).order_by("-updated"),
+    )
 
-    result_queued_engs = get_page_items(request, queued_engs.qs, default_page_num, param_name="queued_engs")
+    result_queued_engs = get_page_items(request,
+                                        queued_engs.qs,
+                                        default_page_num,
+                                        param_name="queued_engs")
 
     # Cancelled or Completed Engagements
     result = EngagementFilter(
         request.GET,
-        queryset=Engagement.objects.filter(product=prod, active=False, engagement_type=engagement_type).order_by('-target_end'))
+        queryset=Engagement.objects.filter(
+            product=prod, active=False,
+            engagement_type=engagement_type).order_by("-target_end"),
+    )
 
-    i_engs_page = get_page_items(request, result.qs, default_page_num, param_name="i_engs")
+    i_engs_page = get_page_items(request,
+                                 result.qs,
+                                 default_page_num,
+                                 param_name="i_engs")
 
     title = "All Engagements"
     if engagement_type == "CI/CD":
         title = "CI/CD Engagements"
 
     product_tab = Product_Tab(pid, title=title, tab="engagements")
-    return render(request,
-                  'dojo/view_engagements.html',
-                  {'prod': prod,
-                   'product_tab': product_tab,
-                   'engagement_type': engagement_type,
-                   'engs': engs,
-                   'engs_count': result_engs.qs.count(),
-                   'queued_engs': result_queued_engs,
-                   'queued_engs_count': queued_engs.qs.count(),
-                   'i_engs': i_engs_page,
-                   'i_engs_count': result.qs.count(),
-                   'user': request.user,
-                   'authorized': auth})
+    return render(
+        request,
+        "dojo/view_engagements.html",
+        {
+            "prod": prod,
+            "product_tab": product_tab,
+            "engagement_type": engagement_type,
+            "engs": engs,
+            "engs_count": result_engs.qs.count(),
+            "queued_engs": result_queued_engs,
+            "queued_engs_count": queued_engs.qs.count(),
+            "i_engs": i_engs_page,
+            "i_engs_count": result.qs.count(),
+            "user": request.user,
+            "authorized": auth,
+        },
+    )
 
 
 def view_engagements_cicd(request, pid):
@@ -410,87 +515,110 @@ def view_engagements_cicd(request, pid):
 @user_passes_test(lambda u: u.is_staff)
 def import_scan_results_prod(request, pid=None):
     from dojo.engagement.views import import_scan_results
+
     return import_scan_results(request, pid=pid)
 
 
 def view_product_details(request, pid):
     prod = get_object_or_404(Product, id=pid)
     scan_sets = ScanSettings.objects.filter(product=prod)
-    tools = Tool_Product_Settings.objects.filter(product=prod).order_by('name')
+    tools = Tool_Product_Settings.objects.filter(product=prod).order_by("name")
     auth = request.user.is_staff or request.user in prod.authorized_users.all()
-    creds = Cred_Mapping.objects.filter(product=prod).select_related('cred_id').order_by('cred_id')
-    langSummary = Languages.objects.filter(product=prod).aggregate(Sum('files'), Sum('code'), Count('files'))
-    languages = Languages.objects.filter(product=prod).order_by('-code')
-    app_analysis = App_Analysis.objects.filter(product=prod).order_by('name')
-    benchmark_type = Benchmark_Type.objects.filter(enabled=True).order_by('name')
-    benchmarks = Benchmark_Product_Summary.objects.filter(product=prod, publish=True, benchmark_type__enabled=True).order_by('benchmark_type__name')
+    creds = (Cred_Mapping.objects.filter(
+        product=prod).select_related("cred_id").order_by("cred_id"))
+    langSummary = Languages.objects.filter(product=prod).aggregate(
+        Sum("files"), Sum("code"), Count("files"))
+    languages = Languages.objects.filter(product=prod).order_by("-code")
+    app_analysis = App_Analysis.objects.filter(product=prod).order_by("name")
+    benchmark_type = Benchmark_Type.objects.filter(
+        enabled=True).order_by("name")
+    benchmarks = Benchmark_Product_Summary.objects.filter(
+        product=prod, publish=True,
+        benchmark_type__enabled=True).order_by("benchmark_type__name")
     system_settings = System_Settings.objects.get()
 
     if not auth:
         # will render 403
         raise PermissionDenied
 
-    product_metadata = dict(prod.product_meta.values_list('name', 'value'))
+    product_metadata = dict(prod.product_meta.values_list("name", "value"))
 
-    add_breadcrumb(parent=product, title="Details", top_level=False, request=request)
-    return render(request,
-                  'dojo/view_product_details.html',
-                  {'prod': prod,
-                   'benchmark_type': benchmark_type,
-                   'benchmarks': benchmarks,
-                   'product_metadata': product_metadata,
-                   'scan_sets': scan_sets,
-                   'tools': tools,
-                   'creds': creds,
-                   'user': request.user,
-                   'languages': languages,
-                   'langSummary': langSummary,
-                   'app_analysis': app_analysis,
-                   'system_settings': system_settings,
-                   'authorized': auth})
+    add_breadcrumb(parent=product,
+                   title="Details",
+                   top_level=False,
+                   request=request)
+    return render(
+        request,
+        "dojo/view_product_details.html",
+        {
+            "prod": prod,
+            "benchmark_type": benchmark_type,
+            "benchmarks": benchmarks,
+            "product_metadata": product_metadata,
+            "scan_sets": scan_sets,
+            "tools": tools,
+            "creds": creds,
+            "user": request.user,
+            "languages": languages,
+            "langSummary": langSummary,
+            "app_analysis": app_analysis,
+            "system_settings": system_settings,
+            "authorized": auth,
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
 def new_product(request):
     jform = None
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ProductForm(request.POST, instance=Product())
-        if get_system_setting('enable_jira'):
+        if get_system_setting("enable_jira"):
             jform = JIRAPKeyForm(request.POST, instance=JIRA_PKey())
         else:
             jform = None
 
         if form.is_valid():
             product = form.save()
-            tags = request.POST.getlist('tags')
+            tags = request.POST.getlist("tags")
             t = ", ".join(tags)
             product.tags = t
-            messages.add_message(request,
-                                 messages.SUCCESS,
-                                 'Product added successfully.',
-                                 extra_tags='alert-success')
-            if get_system_setting('enable_jira'):
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                "Product added successfully.",
+                extra_tags="alert-success",
+            )
+            if get_system_setting("enable_jira"):
                 if jform.is_valid():
                     jira_pkey = jform.save(commit=False)
                     if jira_pkey.conf is not None:
                         jira_pkey.product = product
                         jira_pkey.save()
-                        messages.add_message(request,
-                                                messages.SUCCESS,
-                                                'JIRA information added successfully.',
-                                                extra_tags='alert-success')
-            create_notification(event='product_added', title=product.name, url=reverse('view_product', args=(product.id,)))
-            return HttpResponseRedirect(reverse('view_product', args=(product.id,)))
+                        messages.add_message(
+                            request,
+                            messages.SUCCESS,
+                            "JIRA information added successfully.",
+                            extra_tags="alert-success",
+                        )
+            create_notification(
+                event="product_added",
+                title=product.name,
+                url=reverse("view_product", args=(product.id, )),
+            )
+            return HttpResponseRedirect(
+                reverse("view_product", args=(product.id, )))
     else:
         form = ProductForm()
-        if get_system_setting('enable_jira'):
+        if get_system_setting("enable_jira"):
             jform = JIRAPKeyForm()
         else:
             jform = None
     add_breadcrumb(title="New Product", top_level=False, request=request)
-    return render(request, 'dojo/new_product.html',
-                  {'form': form,
-                   'jform': jform})
+    return render(request, "dojo/new_product.html", {
+        "form": form,
+        "jform": jform
+    })
 
 
 @user_passes_test(lambda u: u.is_staff)
@@ -505,41 +633,49 @@ def edit_product(request, pid):
     except:
         jira_inst = None
         pass
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ProductForm(request.POST, instance=prod)
         if form.is_valid():
             form.save()
-            tags = request.POST.getlist('tags')
+            tags = request.POST.getlist("tags")
             t = ", ".join(tags)
             prod.tags = t
-            messages.add_message(request,
-                                 messages.SUCCESS,
-                                 'Product updated successfully.',
-                                 extra_tags='alert-success')
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                "Product updated successfully.",
+                extra_tags="alert-success",
+            )
 
-            if get_system_setting('enable_jira') and jira_inst:
+            if get_system_setting("enable_jira") and jira_inst:
                 jform = JIRAPKeyForm(request.POST, instance=jira_inst)
                 # need to handle delete
                 try:
                     jform.save()
                 except:
                     pass
-            elif get_system_setting('enable_jira'):
+            elif get_system_setting("enable_jira"):
                 jform = JIRAPKeyForm(request.POST)
                 if jform.is_valid():
                     new_conf = jform.save(commit=False)
                     new_conf.product_id = pid
                     new_conf.save()
-                    messages.add_message(request,
-                                            messages.SUCCESS,
-                                            'JIRA information updated successfully.',
-                                            extra_tags='alert-success')
+                    messages.add_message(
+                        request,
+                        messages.SUCCESS,
+                        "JIRA information updated successfully.",
+                        extra_tags="alert-success",
+                    )
 
-            return HttpResponseRedirect(reverse('view_product', args=(pid,)))
+            return HttpResponseRedirect(reverse("view_product", args=(pid, )))
     else:
-        form = ProductForm(instance=prod,
-                           initial={'auth_users': prod.authorized_users.all(),
-                                    'tags': get_tag_list(Tag.objects.get_for_object(prod))})
+        form = ProductForm(
+            instance=prod,
+            initial={
+                "auth_users": prod.authorized_users.all(),
+                "tags": get_tag_list(Tag.objects.get_for_object(prod)),
+            },
+        )
 
         if jira_enabled and (jira_inst is not None):
             if jira_inst is not None:
@@ -550,15 +686,18 @@ def edit_product(request, pid):
             jform = JIRAPKeyForm()
         else:
             jform = None
-    form.initial['tags'] = [tag.name for tag in prod.tags]
+    form.initial["tags"] = [tag.name for tag in prod.tags]
     product_tab = Product_Tab(pid, title="Edit Product", tab="settings")
-    return render(request,
-                  'dojo/edit_product.html',
-                  {'form': form,
-                   'product_tab': product_tab,
-                   'jform': jform,
-                   'product': prod
-                   })
+    return render(
+        request,
+        "dojo/edit_product.html",
+        {
+            "form": form,
+            "product_tab": product_tab,
+            "jform": jform,
+            "product": prod
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
@@ -566,35 +705,44 @@ def delete_product(request, pid):
     product = get_object_or_404(Product, pk=pid)
     form = DeleteProductForm(instance=product)
 
-    if request.method == 'POST':
-        if 'id' in request.POST and str(product.id) == request.POST['id']:
+    if request.method == "POST":
+        if "id" in request.POST and str(product.id) == request.POST["id"]:
             form = DeleteProductForm(request.POST, instance=product)
             if form.is_valid():
                 if product.tags:
                     del product.tags
                 product.delete()
-                messages.add_message(request,
-                                     messages.SUCCESS,
-                                     'Product and relationships removed.',
-                                     extra_tags='alert-success')
-                create_notification(event='other',
-                                    title='Deletion of %s' % product.name,
-                                    description='The product "%s" was deleted by %s' % (product.name, request.user),
-                                    url=request.build_absolute_uri(reverse('product')),
-                                    icon="exclamation-triangle")
-                return HttpResponseRedirect(reverse('product'))
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    "Product and relationships removed.",
+                    extra_tags="alert-success",
+                )
+                create_notification(
+                    event="other",
+                    title="Deletion of %s" % product.name,
+                    description='The product "%s" was deleted by %s' %
+                    (product.name, request.user),
+                    url=request.build_absolute_uri(reverse("product")),
+                    icon="exclamation-triangle",
+                )
+                return HttpResponseRedirect(reverse("product"))
 
     collector = NestedObjects(using=DEFAULT_DB_ALIAS)
     collector.collect([product])
     rels = collector.nested()
 
     product_tab = Product_Tab(pid, title="Product", tab="settings")
-    return render(request, 'dojo/delete_product.html',
-                  {'product': product,
-                   'form': form,
-                   'product_tab': product_tab,
-                   'rels': rels,
-                   })
+    return render(
+        request,
+        "dojo/delete_product.html",
+        {
+            "product": product,
+            "form": form,
+            "product_tab": product_tab,
+            "rels": rels,
+        },
+    )
 
 
 def all_product_findings(request, pid):
@@ -607,25 +755,29 @@ def all_product_findings(request, pid):
         request.GET,
         queryset=Finding.objects.filter(test__engagement__product=p,
                                         active=True,
-                                        verified=True))
+                                        verified=True),
+    )
     page = get_page_items(request, result.qs, 25)
 
     add_breadcrumb(title="Open findings", top_level=False, request=request)
 
-    return render(request,
-                  "dojo/all_product_findings.html",
-                  {"findings": page,
-                   "product": p,
-                   "filtered": result,
-                   "user": request.user,
-                   })
+    return render(
+        request,
+        "dojo/all_product_findings.html",
+        {
+            "findings": page,
+            "product": p,
+            "filtered": result,
+            "user": request.user,
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
 def new_eng_for_app(request, pid, cicd=False):
     jform = None
     prod = Product.objects.get(id=pid)
-    if request.method == 'POST':
+    if request.method == "POST":
         form = EngForm(request.POST, cicd=cicd)
         if form.is_valid():
             new_eng = form.save(commit=False)
@@ -637,51 +789,85 @@ def new_eng_for_app(request, pid, cicd=False):
             new_eng.check_list = False
             new_eng.product = prod
             if new_eng.threat_model:
-                new_eng.progress = 'threat_model'
+                new_eng.progress = "threat_model"
             else:
-                new_eng.progress = 'other'
+                new_eng.progress = "other"
             if cicd:
-                new_eng.engagement_type = 'CI/CD'
+                new_eng.engagement_type = "CI/CD"
                 new_eng.status = "In Progress"
 
             new_eng.save()
-            tags = request.POST.getlist('tags')
+            tags = request.POST.getlist("tags")
             t = ", ".join(tags)
             new_eng.tags = t
-            if get_system_setting('enable_jira'):
+            if get_system_setting("enable_jira"):
                 # Test to make sure there is a Jira project associated the product
                 try:
-                    jform = JIRAFindingForm(request.POST, prefix='jiraform', enabled=JIRA_PKey.objects.get(product=prod).push_all_issues)
+                    jform = JIRAFindingForm(
+                        request.POST,
+                        prefix="jiraform",
+                        enabled=JIRA_PKey.objects.get(
+                            product=prod).push_all_issues,
+                    )
                     if jform.is_valid():
-                        add_epic_task.delay(new_eng, jform.cleaned_data.get('push_to_jira'))
+                        add_epic_task.delay(
+                            new_eng, jform.cleaned_data.get("push_to_jira"))
                 except JIRA_PKey.DoesNotExist:
                     pass
 
-            messages.add_message(request,
-                                 messages.SUCCESS,
-                                 'Engagement added successfully.',
-                                 extra_tags='alert-success')
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                "Engagement added successfully.",
+                extra_tags="alert-success",
+            )
 
-            create_notification(event='engagement_added', title=new_eng.name + " for " + prod.name, engagement=new_eng, url=reverse('view_engagement', args=(new_eng.id,)), objowner=new_eng.lead)
+            create_notification(
+                event="engagement_added",
+                title=new_eng.name + " for " + prod.name,
+                engagement=new_eng,
+                url=reverse("view_engagement", args=(new_eng.id, )),
+                objowner=new_eng.lead,
+            )
 
             if "_Add Tests" in request.POST:
-                return HttpResponseRedirect(reverse('add_tests', args=(new_eng.id,)))
+                return HttpResponseRedirect(
+                    reverse("add_tests", args=(new_eng.id, )))
             elif "_Import Scan Results" in request.POST:
-                return HttpResponseRedirect(reverse('import_scan_results', args=(new_eng.id,)))
+                return HttpResponseRedirect(
+                    reverse("import_scan_results", args=(new_eng.id, )))
             else:
-                return HttpResponseRedirect(reverse('view_engagement', args=(new_eng.id,)))
+                return HttpResponseRedirect(
+                    reverse("view_engagement", args=(new_eng.id, )))
     else:
-        form = EngForm(initial={'lead': request.user, 'target_start': timezone.now().date(), 'target_end': timezone.now().date() + timedelta(days=7)}, cicd=cicd, product=prod.id)
-        if(get_system_setting('enable_jira')):
+        form = EngForm(
+            initial={
+                "lead": request.user,
+                "target_start": timezone.now().date(),
+                "target_end": timezone.now().date() + timedelta(days=7),
+            },
+            cicd=cicd,
+            product=prod.id,
+        )
+        if get_system_setting("enable_jira"):
             if JIRA_PKey.objects.filter(product=prod).count() != 0:
-                jform = JIRAFindingForm(prefix='jiraform', enabled=JIRA_PKey.objects.get(product=prod).push_all_issues)
+                jform = JIRAFindingForm(
+                    prefix="jiraform",
+                    enabled=JIRA_PKey.objects.get(
+                        product=prod).push_all_issues,
+                )
 
     product_tab = Product_Tab(pid, title="New Engagement", tab="engagements")
-    return render(request, 'dojo/new_eng.html',
-                  {'form': form, 'pid': pid,
-                   'product_tab': product_tab,
-                   'jform': jform
-                   })
+    return render(
+        request,
+        "dojo/new_eng.html",
+        {
+            "form": form,
+            "pid": pid,
+            "product_tab": product_tab,
+            "jform": jform
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
@@ -692,38 +878,45 @@ def new_eng_for_app_cicd(request, pid):
 @user_passes_test(lambda u: u.is_staff)
 def add_meta_data(request, pid):
     prod = Product.objects.get(id=pid)
-    if request.method == 'POST':
+    if request.method == "POST":
         form = DojoMetaDataForm(request.POST, instance=DojoMeta(product=prod))
         if form.is_valid():
             form.save()
-            messages.add_message(request,
-                                 messages.SUCCESS,
-                                 'Metadata added successfully.',
-                                 extra_tags='alert-success')
-            if 'add_another' in request.POST:
-                return HttpResponseRedirect(reverse('add_meta_data', args=(pid,)))
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                "Metadata added successfully.",
+                extra_tags="alert-success",
+            )
+            if "add_another" in request.POST:
+                return HttpResponseRedirect(
+                    reverse("add_meta_data", args=(pid, )))
             else:
-                return HttpResponseRedirect(reverse('view_product', args=(pid,)))
+                return HttpResponseRedirect(
+                    reverse("view_product", args=(pid, )))
     else:
         form = DojoMetaDataForm()
 
     product_tab = Product_Tab(pid, title="Add Metadata", tab="settings")
 
-    return render(request,
-                  'dojo/add_product_meta_data.html',
-                  {'form': form,
-                   'product_tab': product_tab,
-                   'product': prod,
-                   })
+    return render(
+        request,
+        "dojo/add_product_meta_data.html",
+        {
+            "form": form,
+            "product_tab": product_tab,
+            "product": prod,
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
 def edit_meta_data(request, pid):
     prod = Product.objects.get(id=pid)
-    if request.method == 'POST':
+    if request.method == "POST":
         for key, value in request.POST.items():
-            if key.startswith('cfv_'):
-                cfv_id = int(key.split('_')[1])
+            if key.startswith("cfv_"):
+                cfv_id = int(key.split("_")[1])
                 cfv = get_object_or_404(DojoMeta, id=cfv_id)
                 value = value.strip()
                 if value:
@@ -731,18 +924,23 @@ def edit_meta_data(request, pid):
                     cfv.save()
                 else:
                     cfv.delete()
-        messages.add_message(request,
-                             messages.SUCCESS,
-                             'Metadata edited successfully.',
-                             extra_tags='alert-success')
-        return HttpResponseRedirect(reverse('view_product', args=(pid,)))
+        messages.add_message(
+            request,
+            messages.SUCCESS,
+            "Metadata edited successfully.",
+            extra_tags="alert-success",
+        )
+        return HttpResponseRedirect(reverse("view_product", args=(pid, )))
 
     product_tab = Product_Tab(pid, title="Edit Metadata", tab="settings")
-    return render(request,
-                  'dojo/edit_product_meta_data.html',
-                  {'product': prod,
-                   'product_tab': product_tab,
-                   })
+    return render(
+        request,
+        "dojo/edit_product_meta_data.html",
+        {
+            "product": prod,
+            "product_tab": product_tab,
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
@@ -756,27 +954,42 @@ def ad_hoc_finding(request, pid):
         if len(tests) != 0:
             test = tests[0]
         else:
-            test = Test(engagement=eng, test_type=Test_Type.objects.get(name="Pen Test"),
-                        target_start=timezone.now(), target_end=timezone.now())
+            test = Test(
+                engagement=eng,
+                test_type=Test_Type.objects.get(name="Pen Test"),
+                target_start=timezone.now(),
+                target_end=timezone.now(),
+            )
             test.save()
     except:
-        eng = Engagement(name="Ad Hoc Engagement", target_start=timezone.now(),
-                         target_end=timezone.now(), active=False, product=prod)
+        eng = Engagement(
+            name="Ad Hoc Engagement",
+            target_start=timezone.now(),
+            target_end=timezone.now(),
+            active=False,
+            product=prod,
+        )
         eng.save()
-        test = Test(engagement=eng, test_type=Test_Type.objects.get(name="Pen Test"),
-                    target_start=timezone.now(), target_end=timezone.now())
+        test = Test(
+            engagement=eng,
+            test_type=Test_Type.objects.get(name="Pen Test"),
+            target_start=timezone.now(),
+            target_end=timezone.now(),
+        )
         test.save()
     form_error = False
     enabled = False
     jform = None
-    form = AdHocFindingForm(initial={'date': timezone.now().date()})
-    if get_system_setting('enable_jira'):
-        if JIRA_PKey.objects.filter(product=test.engagement.product).count() != 0:
-            enabled = JIRA_PKey.objects.get(product=test.engagement.product).push_all_issues
-            jform = JIRAFindingForm(enabled=enabled, prefix='jiraform')
+    form = AdHocFindingForm(initial={"date": timezone.now().date()})
+    if get_system_setting("enable_jira"):
+        if JIRA_PKey.objects.filter(
+                product=test.engagement.product).count() != 0:
+            enabled = JIRA_PKey.objects.get(
+                product=test.engagement.product).push_all_issues
+            jform = JIRAFindingForm(enabled=enabled, prefix="jiraform")
     else:
         jform = None
-    if request.method == 'POST':
+    if request.method == "POST":
         form = AdHocFindingForm(request.POST)
         if form.is_valid():
             new_finding = form.save(commit=False)
@@ -791,63 +1004,84 @@ def ad_hoc_finding(request, pid):
             # always false now since this will be deprecated soon in favor of new Finding_Template model
             new_finding.is_template = False
             new_finding.save()
-            new_finding.endpoints.set(form.cleaned_data['endpoints'])
+            new_finding.endpoints.set(form.cleaned_data["endpoints"])
             new_finding.save()
-            if 'jiraform-push_to_jira' in request.POST:
-                jform = JIRAFindingForm(request.POST, prefix='jiraform', enabled=enabled)
+            if "jiraform-push_to_jira" in request.POST:
+                jform = JIRAFindingForm(request.POST,
+                                        prefix="jiraform",
+                                        enabled=enabled)
                 if jform.is_valid():
-                    add_issue_task.delay(new_finding, jform.cleaned_data.get('push_to_jira'))
-                messages.add_message(request,
-                                     messages.SUCCESS,
-                                     'Finding added successfully.',
-                                     extra_tags='alert-success')
+                    add_issue_task.delay(
+                        new_finding, jform.cleaned_data.get("push_to_jira"))
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    "Finding added successfully.",
+                    extra_tags="alert-success",
+                )
             if create_template:
-                templates = Finding_Template.objects.filter(title=new_finding.title)
+                templates = Finding_Template.objects.filter(
+                    title=new_finding.title)
                 if len(templates) > 0:
-                    messages.add_message(request,
-                                         messages.ERROR,
-                                         'A finding template was not created.  A template with this title already '
-                                         'exists.',
-                                         extra_tags='alert-danger')
+                    messages.add_message(
+                        request,
+                        messages.ERROR,
+                        "A finding template was not created.  A template with this title already "
+                        "exists.",
+                        extra_tags="alert-danger",
+                    )
                 else:
-                    template = Finding_Template(title=new_finding.title,
-                                                cwe=new_finding.cwe,
-                                                severity=new_finding.severity,
-                                                description=new_finding.description,
-                                                mitigation=new_finding.mitigation,
-                                                impact=new_finding.impact,
-                                                references=new_finding.references,
-                                                numerical_severity=new_finding.numerical_severity)
+                    template = Finding_Template(
+                        title=new_finding.title,
+                        cwe=new_finding.cwe,
+                        severity=new_finding.severity,
+                        description=new_finding.description,
+                        mitigation=new_finding.mitigation,
+                        impact=new_finding.impact,
+                        references=new_finding.references,
+                        numerical_severity=new_finding.numerical_severity,
+                    )
                     template.save()
-                    messages.add_message(request,
-                                         messages.SUCCESS,
-                                         'A finding template was also created.',
-                                         extra_tags='alert-success')
-            if '_Finished' in request.POST:
-                return HttpResponseRedirect(reverse('view_test', args=(test.id,)))
+                    messages.add_message(
+                        request,
+                        messages.SUCCESS,
+                        "A finding template was also created.",
+                        extra_tags="alert-success",
+                    )
+            if "_Finished" in request.POST:
+                return HttpResponseRedirect(
+                    reverse("view_test", args=(test.id, )))
             else:
-                return HttpResponseRedirect(reverse('add_findings', args=(test.id,)))
+                return HttpResponseRedirect(
+                    reverse("add_findings", args=(test.id, )))
         else:
-            if 'endpoints' in form.cleaned_data:
-                form.fields['endpoints'].queryset = form.cleaned_data['endpoints']
+            if "endpoints" in form.cleaned_data:
+                form.fields["endpoints"].queryset = form.cleaned_data[
+                    "endpoints"]
             else:
-                form.fields['endpoints'].queryset = Endpoint.objects.none()
+                form.fields["endpoints"].queryset = Endpoint.objects.none()
             form_error = True
-            messages.add_message(request,
-                                 messages.ERROR,
-                                 'The form has errors, please correct them below.',
-                                 extra_tags='alert-danger')
+            messages.add_message(
+                request,
+                messages.ERROR,
+                "The form has errors, please correct them below.",
+                extra_tags="alert-danger",
+            )
     product_tab = Product_Tab(pid, title="Add Finding", tab="engagements")
     product_tab.setEngagement(eng)
-    return render(request, 'dojo/ad_hoc_findings.html',
-                  {'form': form,
-                   'product_tab': product_tab,
-                   'temp': False,
-                   'tid': test.id,
-                   'pid': pid,
-                   'form_error': form_error,
-                   'jform': jform,
-                   })
+    return render(
+        request,
+        "dojo/ad_hoc_findings.html",
+        {
+            "form": form,
+            "product_tab": product_tab,
+            "temp": False,
+            "tid": test.id,
+            "pid": pid,
+            "form_error": form_error,
+            "jform": jform,
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
@@ -855,12 +1089,19 @@ def engagement_presets(request, pid):
     prod = get_object_or_404(Product, id=pid)
     presets = Engagement_Presets.objects.filter(product=prod).all()
 
-    product_tab = Product_Tab(prod.id, title="Engagement Presets", tab="settings")
+    product_tab = Product_Tab(prod.id,
+                              title="Engagement Presets",
+                              tab="settings")
 
-    return render(request, 'dojo/view_presets.html',
-                  {'product_tab': product_tab,
-                   'presets': presets,
-                   'prod': prod})
+    return render(
+        request,
+        "dojo/view_presets.html",
+        {
+            "product_tab": product_tab,
+            "presets": presets,
+            "prod": prod
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
@@ -868,31 +1109,40 @@ def edit_engagement_presets(request, pid, eid):
     prod = get_object_or_404(Product, id=pid)
     preset = get_object_or_404(Engagement_Presets, id=eid)
 
-    product_tab = Product_Tab(prod.id, title="Edit Engagement Preset", tab="settings")
+    product_tab = Product_Tab(prod.id,
+                              title="Edit Engagement Preset",
+                              tab="settings")
 
-    if request.method == 'POST':
+    if request.method == "POST":
         tform = EngagementPresetsForm(request.POST, instance=preset)
         if tform.is_valid():
             tform.save()
             messages.add_message(
                 request,
                 messages.SUCCESS,
-                'Engagement Preset Successfully Updated.',
-                extra_tags='alert-success')
-            return HttpResponseRedirect(reverse('engagement_presets', args=(pid,)))
+                "Engagement Preset Successfully Updated.",
+                extra_tags="alert-success",
+            )
+            return HttpResponseRedirect(
+                reverse("engagement_presets", args=(pid, )))
     else:
         tform = EngagementPresetsForm(instance=preset)
 
-    return render(request, 'dojo/edit_presets.html',
-                  {'product_tab': product_tab,
-                   'tform': tform,
-                   'prod': prod})
+    return render(
+        request,
+        "dojo/edit_presets.html",
+        {
+            "product_tab": product_tab,
+            "tform": tform,
+            "prod": prod
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
 def add_engagement_presets(request, pid):
     prod = get_object_or_404(Product, id=pid)
-    if request.method == 'POST':
+    if request.method == "POST":
         tform = EngagementPresetsForm(request.POST)
         if tform.is_valid():
             form_copy = tform.save(commit=False)
@@ -902,14 +1152,26 @@ def add_engagement_presets(request, pid):
             messages.add_message(
                 request,
                 messages.SUCCESS,
-                'Engagement Preset Successfully Created.',
-                extra_tags='alert-success')
-            return HttpResponseRedirect(reverse('engagement_presets', args=(pid,)))
+                "Engagement Preset Successfully Created.",
+                extra_tags="alert-success",
+            )
+            return HttpResponseRedirect(
+                reverse("engagement_presets", args=(pid, )))
     else:
         tform = EngagementPresetsForm()
 
-    product_tab = Product_Tab(pid, title="New Engagement Preset", tab="settings")
-    return render(request, 'dojo/new_params.html', {'tform': tform, 'pid': pid, 'product_tab': product_tab})
+    product_tab = Product_Tab(pid,
+                              title="New Engagement Preset",
+                              tab="settings")
+    return render(
+        request,
+        "dojo/new_params.html",
+        {
+            "tform": tform,
+            "pid": pid,
+            "product_tab": product_tab
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
@@ -918,25 +1180,34 @@ def delete_engagement_presets(request, pid, eid):
     preset = get_object_or_404(Engagement_Presets, id=eid)
     form = DeleteEngagementPresetsForm(instance=preset)
 
-    if request.method == 'POST':
-        if 'id' in request.POST:
+    if request.method == "POST":
+        if "id" in request.POST:
             form = DeleteEngagementPresetsForm(request.POST, instance=preset)
             if form.is_valid():
                 preset.delete()
-                messages.add_message(request,
-                                     messages.SUCCESS,
-                                     'Engagement presets and engagement relationships removed.',
-                                     extra_tags='alert-success')
-                return HttpResponseRedirect(reverse('engagement_presets', args=(pid,)))
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    "Engagement presets and engagement relationships removed.",
+                    extra_tags="alert-success",
+                )
+                return HttpResponseRedirect(
+                    reverse("engagement_presets", args=(pid, )))
 
     collector = NestedObjects(using=DEFAULT_DB_ALIAS)
     collector.collect([preset])
     rels = collector.nested()
 
-    product_tab = Product_Tab(pid, title="Delete Engagement Preset", tab="settings")
-    return render(request, 'dojo/delete_presets.html',
-                  {'product': product,
-                   'form': form,
-                   'product_tab': product_tab,
-                   'rels': rels,
-                   })
+    product_tab = Product_Tab(pid,
+                              title="Delete Engagement Preset",
+                              tab="settings")
+    return render(
+        request,
+        "dojo/delete_presets.html",
+        {
+            "product": product,
+            "form": form,
+            "product_tab": product_tab,
+            "rels": rels,
+        },
+    )

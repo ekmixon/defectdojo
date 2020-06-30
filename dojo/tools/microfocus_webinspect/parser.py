@@ -5,25 +5,24 @@ import re
 from defusedxml import ElementTree as ET
 from dojo.models import Endpoint, Finding
 
-__author__ = 'dr3dd589'
+__author__ = "dr3dd589"
 
 
 class Severityfilter:
-
     def __init__(self):
         self.severity_mapping = {
-            '0': 'Info',
-            '1': 'Low',
-            '2': 'Medium',
-            '3': 'High',
-                                }
+            "0": "Info",
+            "1": "Low",
+            "2": "Medium",
+            "3": "High",
+        }
         self.severity = None
 
     def eval_column(self, column_value):
         if column_value in self.severity_mapping.keys():
             self.severity = self.severity_mapping[column_value]
         else:
-            self.severity = 'Info'
+            self.severity = "Info"
 
 
 class MicrofocusWebinspectXMLParser(object):
@@ -36,38 +35,42 @@ class MicrofocusWebinspectXMLParser(object):
         tree = ET.parse(file)
         # get root of tree.
         root = tree.getroot()
-        if 'Sessions' not in root.tag:
-            raise NamespaceErr("This doesn't seem to be a valid Webinspect xml file.")
+        if "Sessions" not in root.tag:
+            raise NamespaceErr(
+                "This doesn't seem to be a valid Webinspect xml file.")
 
         for session in root:
-            url = session.find('URL').text
-            host = session.find('Host').text
-            port = session.find('Port').text
-            scheme = session.find('Scheme').text
-            issues = session.find('Issues')
-            for issue in issues.findall('Issue'):
-                title = issue.find('Name').text
-                num_severity = issue.find('Severity').text
+            url = session.find("URL").text
+            host = session.find("Host").text
+            port = session.find("Port").text
+            scheme = session.find("Scheme").text
+            issues = session.find("Issues")
+            for issue in issues.findall("Issue"):
+                title = issue.find("Name").text
+                num_severity = issue.find("Severity").text
                 severityfilter = Severityfilter()
                 severityfilter.eval_column(num_severity)
                 severity = severityfilter.severity
-                for content in issue.findall('ReportSection'):
-                    name = content.find('Name').text
-                    if 'Summary' in name:
-                        description = content.find('SectionText').text
-                    if 'Fix' in name:
-                        mitigation = content.find('SectionText').text
-                    if 'Reference' in name:
-                        reference = content.find('SectionText').text
-                Classifications = issue.find('Classifications')
-                for content in Classifications.findall('Classification'):
+                for content in issue.findall("ReportSection"):
+                    name = content.find("Name").text
+                    if "Summary" in name:
+                        description = content.find("SectionText").text
+                    if "Fix" in name:
+                        mitigation = content.find("SectionText").text
+                    if "Reference" in name:
+                        reference = content.find("SectionText").text
+                Classifications = issue.find("Classifications")
+                for content in Classifications.findall("Classification"):
                     cwe_content = content.text
-                    if 'CWE' in cwe_content:
-                        cwe = re.findall(r'\d+', content.attrib['identifier'])[0]
+                    if "CWE" in cwe_content:
+                        cwe = re.findall(r"\d+",
+                                         content.attrib["identifier"])[0]
                         description += "\n\n" + cwe_content + "\n"
 
                 # make dupe hash key
-                dupe_key = hashlib.md5(str(description + title + severity).encode('utf-8')).hexdigest()
+                dupe_key = hashlib.md5(
+                    str(description + title +
+                        severity).encode("utf-8")).hexdigest()
                 # check if dupes are present.
                 if dupe_key in self.dupes:
                     finding = self.dupes[dupe_key]
@@ -78,18 +81,20 @@ class MicrofocusWebinspectXMLParser(object):
                 else:
                     self.dupes[dupe_key] = True
 
-                    finding = Finding(title=title,
-                                    test=test,
-                                    active=False,
-                                    verified=False,
-                                    cwe=cwe,
-                                    description=description,
-                                    severity=severity,
-                                    numerical_severity=Finding.get_numerical_severity(
-                                        severity),
-                                    mitigation=mitigation,
-                                    references=reference,
-                                    dynamic_finding=True)
+                    finding = Finding(
+                        title=title,
+                        test=test,
+                        active=False,
+                        verified=False,
+                        cwe=cwe,
+                        description=description,
+                        severity=severity,
+                        numerical_severity=Finding.get_numerical_severity(
+                            severity),
+                        mitigation=mitigation,
+                        references=reference,
+                        dynamic_finding=True,
+                    )
 
                     self.dupes[dupe_key] = finding
                     self.process_endpoints(finding, host)
@@ -110,7 +115,8 @@ class MicrofocusWebinspectXMLParser(object):
 
         rhost = re.search(
             r"(http|https|ftp)\://([a-zA-Z0-9\.\-]+(\:[a-zA-Z0-9\.&amp;%\$\-]+)*@)*((25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9])\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[1-9]|0)\.(25[0-5]|2[0-4][0-9]|[0-1]{1}[0-9]{2}|[1-9]{1}[0-9]{1}|[0-9])|localhost|([a-zA-Z0-9\-]+\.)*[a-zA-Z0-9\-]+\.(com|edu|gov|int|mil|net|org|biz|arpa|info|name|pro|aero|coop|museum|[a-zA-Z]{2}))[\:]*([0-9]+)*([/]*($|[a-zA-Z0-9\.\,\?\'\\\+&amp;%\$#\=~_\-]+)).*?$",
-            host)
+            host,
+        )
         try:
             protocol = rhost.group(1)
             host = rhost.group(4)
@@ -121,8 +127,7 @@ class MicrofocusWebinspectXMLParser(object):
                                                  host=host,
                                                  query=query,
                                                  fragment=fragment,
-                                                 path=path
-                                                 )
+                                                 path=path)
         except Endpoint.DoesNotExist:
             dupe_endpoint = None
 
@@ -131,8 +136,7 @@ class MicrofocusWebinspectXMLParser(object):
                                 host=host,
                                 query=query,
                                 fragment=fragment,
-                                path=path
-                                )
+                                path=path)
         else:
             endpoint = dupe_endpoint
 

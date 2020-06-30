@@ -6,7 +6,6 @@ import datetime
 
 
 class TestCheckmarxParser(TestCase):
-
     def test_parse_file_with_no_vulnerabilities_has_no_findings(self):
         my_file_handle = open("dojo/unittests/scans/checkmarx/no_finding.xml")
         product = Product()
@@ -19,7 +18,8 @@ class TestCheckmarxParser(TestCase):
         self.assertEqual(0, len(self.parser.items))
 
     def test_parse_file_with_single_vulnerability_has_single_finding(self):
-        my_file_handle = open("dojo/unittests/scans/checkmarx/single_finding.xml")
+        my_file_handle = open(
+            "dojo/unittests/scans/checkmarx/single_finding.xml")
         product = Product()
         engagement = Engagement()
         test = Test()
@@ -39,7 +39,8 @@ class TestCheckmarxParser(TestCase):
         self.assertEqual(bool, type(item.verified))
         self.assertEqual(False, item.verified)
         self.assertEqual(str, type(item.description))
-        self.assertMultiLineEqual("**Category:** PCI DSS v3.2;PCI DSS (3.2) - 6.5.7 - Cross-site scripting (XSS),OWASP Top 10 2013;A3-Cross-Site Scripting (XSS),FISMA 2014;System And Information Integrity,NIST SP 800-53;SI-15 Information Output Filtering (P0),OWASP Top 10 2017;A7-Cross-Site Scripting (XSS)\n"
+        self.assertMultiLineEqual(
+            "**Category:** PCI DSS v3.2;PCI DSS (3.2) - 6.5.7 - Cross-site scripting (XSS),OWASP Top 10 2013;A3-Cross-Site Scripting (XSS),FISMA 2014;System And Information Integrity,NIST SP 800-53;SI-15 Information Output Filtering (P0),OWASP Top 10 2017;A7-Cross-Site Scripting (XSS)\n"
             "**Language:** Java\n"
             "**Group:** Java High Risk\n"
             "**Status:** New\n"
@@ -73,19 +74,19 @@ class TestCheckmarxParser(TestCase):
             "**Column:** 64\n"
             "**Source Object:** getString\n"
             "**Number:** 53\n"
-            "**Code:** userMap.put(\"cookie\", results.getString(5));\n"
+            '**Code:** userMap.put("cookie", results.getString(5));\n'
             "-----\n"
             "**Line Number:** 53\n"
             "**Column:** 36\n"
             "**Source Object:** put\n"
             "**Number:** 53\n"
-            "**Code:** userMap.put(\"cookie\", results.getString(5));\n"
+            '**Code:** userMap.put("cookie", results.getString(5));\n'
             "-----\n"
             "**Line Number:** 54\n"
             "**Column:** 25\n"
             "**Source Object:** userMap\n"
             "**Number:** 54\n"
-            "**Code:** userMap.put(\"loginCOunt\",Integer.toString(results.getInt(6)));\n"
+            '**Code:** userMap.put("loginCOunt",Integer.toString(results.getInt(6)));\n'
             "-----\n"
             "**Line Number:** 55\n"
             "**Column:** 44\n"
@@ -105,7 +106,8 @@ class TestCheckmarxParser(TestCase):
             "**Number:** 58\n"
             "**Code:** return allUsersMap;\n"
             "-----\n",
-            item.description)
+            item.description,
+        )
         self.assertEqual(str, type(item.severity))
         self.assertEqual("High", item.severity)
         self.assertEqual(str, type(item.numerical_severity))
@@ -115,7 +117,10 @@ class TestCheckmarxParser(TestCase):
         self.assertEqual(str, type(item.references))
         self.assertEqual("", item.references)
         self.assertEqual(str, type(item.file_path))
-        self.assertEqual("WebGoat/webgoat-lessons/missing-function-ac/src/main/java/org/owasp/webgoat/plugin/Users.java", item.file_path)
+        self.assertEqual(
+            "WebGoat/webgoat-lessons/missing-function-ac/src/main/java/org/owasp/webgoat/plugin/Users.java",
+            item.file_path,
+        )
         self.assertEqual(str, type(item.line))
         self.assertEqual("58", item.line)
         self.assertEqual(str, type(item.url))
@@ -126,8 +131,10 @@ class TestCheckmarxParser(TestCase):
         self.assertEqual(bool, type(item.static_finding))
         self.assertEqual(True, item.static_finding)
 
-    def test_parse_file_with_multiple_vulnerabilities_has_multiple_findings(self):
-        my_file_handle = open("dojo/unittests/scans/checkmarx/multiple_findings.xml")
+    def test_parse_file_with_multiple_vulnerabilities_has_multiple_findings(
+            self):
+        my_file_handle = open(
+            "dojo/unittests/scans/checkmarx/multiple_findings.xml")
         product = Product()
         engagement = Engagement()
         test = Test()
@@ -139,7 +146,8 @@ class TestCheckmarxParser(TestCase):
         self.assertEqual(2, len(self.parser.items))
 
     def test_parse_file_with_utf8_replacement_char(self):
-        my_file_handle = open("dojo/unittests/scans/checkmarx/utf8_replacement_char.xml")
+        my_file_handle = open(
+            "dojo/unittests/scans/checkmarx/utf8_replacement_char.xml")
         product = Product()
         engagement = Engagement()
         test = Test()
@@ -159,7 +167,8 @@ class TestCheckmarxParser(TestCase):
         self.assertEqual(bool, type(item.verified))
         self.assertEqual(False, item.verified)
         self.assertEqual(str, type(item.description))
-        self.assertMultiLineEqual("**Category:** PCI DSS v3.2;PCI DSS (3.2) - 6.5.7 - Cross-site scripting (XSS),OWASP Top 10 2013;A3-Cross-Site Scripting (XSS),FISMA 2014;System And Information Integrity,NIST SP 800-53;SI-15 Information Output Filtering (P0),OWASP Top 10 2017;A7-Cross-Site Scripting (XSS)\n"
+        self.assertMultiLineEqual(
+            "**Category:** PCI DSS v3.2;PCI DSS (3.2) - 6.5.7 - Cross-site scripting (XSS),OWASP Top 10 2013;A3-Cross-Site Scripting (XSS),FISMA 2014;System And Information Integrity,NIST SP 800-53;SI-15 Information Output Filtering (P0),OWASP Top 10 2017;A7-Cross-Site Scripting (XSS)\n"
             "**Language:** Java\n"
             "**Group:** Java High Risk\n"
             "**Status:** New\n"
@@ -193,19 +202,19 @@ class TestCheckmarxParser(TestCase):
             "**Column:** 64\n"
             "**Source Object:** getString\n"
             "**Number:** 53\n"
-            "**Code:** userMap.put(\"cookie\", results.getString(5));\n"
+            '**Code:** userMap.put("cookie", results.getString(5));\n'
             "-----\n"
             "**Line Number:** 53\n"
             "**Column:** 36\n"
             "**Source Object:** put\n"
             "**Number:** 53\n"
-            "**Code:** userMap.put(\"cookie\", results.getString(5));\n"
+            '**Code:** userMap.put("cookie", results.getString(5));\n'
             "-----\n"
             "**Line Number:** 54\n"
             "**Column:** 25\n"
             "**Source Object:** userMap\n"
             "**Number:** 54\n"
-            "**Code:** userMap.put(\"loginCOunt\",Integer.toString(results.getInt(6)));\n"
+            '**Code:** userMap.put("loginCOunt",Integer.toString(results.getInt(6)));\n'
             "-----\n"
             "**Line Number:** 55\n"
             "**Column:** 44\n"
@@ -225,7 +234,8 @@ class TestCheckmarxParser(TestCase):
             "**Number:** 58\n"
             "**Code:** return allUsersMap;\n"
             "-----\n",
-            item.description)
+            item.description,
+        )
         self.assertEqual(str, type(item.severity))
         self.assertEqual("High", item.severity)
         self.assertEqual(str, type(item.numerical_severity))
@@ -235,7 +245,10 @@ class TestCheckmarxParser(TestCase):
         self.assertEqual(str, type(item.references))
         self.assertEqual("", item.references)
         self.assertEqual(str, type(item.file_path))
-        self.assertEqual("WebGoat/webgoat-lessons/missing-function-ac/src/main/java/org/owasp/webgoat/plugin/Users.java", item.file_path)
+        self.assertEqual(
+            "WebGoat/webgoat-lessons/missing-function-ac/src/main/java/org/owasp/webgoat/plugin/Users.java",
+            item.file_path,
+        )
         self.assertEqual(str, type(item.line))
         self.assertEqual("58", item.line)
         self.assertEqual(str, type(item.url))
@@ -247,7 +260,8 @@ class TestCheckmarxParser(TestCase):
         self.assertEqual(True, item.static_finding)
 
     def test_parse_file_with_utf8_various_non_ascii_char(self):
-        my_file_handle = open("dojo/unittests/scans/checkmarx/utf8_various_non_ascii_char.xml")
+        my_file_handle = open(
+            "dojo/unittests/scans/checkmarx/utf8_various_non_ascii_char.xml")
         product = Product()
         engagement = Engagement()
         test = Test()
@@ -267,7 +281,8 @@ class TestCheckmarxParser(TestCase):
         self.assertEqual(bool, type(item.verified))
         self.assertEqual(False, item.verified)
         self.assertEqual(str, type(item.description))
-        self.assertMultiLineEqual("**Category:** PCI DSS v3.2;PCI DSS (3.2) - 6.5.7 - Cross-site scripting (XSS),OWASP Top 10 2013;A3-Cross-Site Scripting (XSS),FISMA 2014;System And Information Integrity,NIST SP 800-53;SI-15 Information Output Filtering (P0),OWASP Top 10 2017;A7-Cross-Site Scripting (XSS)\n"
+        self.assertMultiLineEqual(
+            "**Category:** PCI DSS v3.2;PCI DSS (3.2) - 6.5.7 - Cross-site scripting (XSS),OWASP Top 10 2013;A3-Cross-Site Scripting (XSS),FISMA 2014;System And Information Integrity,NIST SP 800-53;SI-15 Information Output Filtering (P0),OWASP Top 10 2017;A7-Cross-Site Scripting (XSS)\n"
             "**Language:** Java\n"
             "**Group:** Java High Risk\n"
             "**Status:** New\n"
@@ -301,19 +316,19 @@ class TestCheckmarxParser(TestCase):
             "**Column:** 64\n"
             "**Source Object:** getString\n"
             "**Number:** 53\n"
-            "**Code:** userMap.put(\"cookie\", results.getString(5));\n"
+            '**Code:** userMap.put("cookie", results.getString(5));\n'
             "-----\n"
             "**Line Number:** 53\n"
             "**Column:** 36\n"
             "**Source Object:** put\n"
             "**Number:** 53\n"
-            "**Code:** userMap.put(\"cookie\", results.getString(5));\n"
+            '**Code:** userMap.put("cookie", results.getString(5));\n'
             "-----\n"
             "**Line Number:** 54\n"
             "**Column:** 25\n"
             "**Source Object:** userMap\n"
             "**Number:** 54\n"
-            "**Code:** userMap.put(\"loginCOunt\",Integer.toString(results.getInt(6)));\n"
+            '**Code:** userMap.put("loginCOunt",Integer.toString(results.getInt(6)));\n'
             "-----\n"
             "**Line Number:** 55\n"
             "**Column:** 44\n"
@@ -333,7 +348,8 @@ class TestCheckmarxParser(TestCase):
             "**Number:** 58\n"
             "**Code:** return allUsersMap;\n"
             "-----\n",
-            item.description)
+            item.description,
+        )
         self.assertEqual(str, type(item.severity))
         self.assertEqual("High", item.severity)
         self.assertEqual(str, type(item.numerical_severity))
@@ -343,7 +359,10 @@ class TestCheckmarxParser(TestCase):
         self.assertEqual(str, type(item.references))
         self.assertEqual("", item.references)
         self.assertEqual(str, type(item.file_path))
-        self.assertEqual("WebGoat/webgoat-lessons/missing-function-ac/src/main/java/org/owasp/webgoat/plugin/¡¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſ/Users.java", item.file_path)
+        self.assertEqual(
+            "WebGoat/webgoat-lessons/missing-function-ac/src/main/java/org/owasp/webgoat/plugin/¡¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſ/Users.java",
+            item.file_path,
+        )
         self.assertEqual(str, type(item.line))
         self.assertEqual("58", item.line)
         self.assertEqual(str, type(item.url))

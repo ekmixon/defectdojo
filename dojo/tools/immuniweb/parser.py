@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from dojo.models import Endpoint, Finding
 from defusedxml import ElementTree
 
-__author__ = 'properam'
+__author__ = "properam"
 
 
 class ImmuniwebXMLParser(object):
@@ -16,8 +16,9 @@ class ImmuniwebXMLParser(object):
         ImmuniScanTree = ElementTree.parse(file)
         root = ImmuniScanTree.getroot()
         # validate XML file
-        if 'Vulnerabilities' not in root.tag:
-            raise NamespaceErr("This does not look like a valid expected Immuniweb XML file.")
+        if "Vulnerabilities" not in root.tag:
+            raise NamespaceErr(
+                "This does not look like a valid expected Immuniweb XML file.")
 
         self.dupes = dict()
 
@@ -30,22 +31,23 @@ class ImmuniwebXMLParser(object):
             """
             mitigation = "N/A"
             impact = "N/A"
-            title = vulnerability.find('Name').text
-            reference = vulnerability.find('ID').text
-            cwe = ''.join(i for i in vulnerability.find('CWE-ID').text if i.isdigit())
+            title = vulnerability.find("Name").text
+            reference = vulnerability.find("ID").text
+            cwe = "".join(i for i in vulnerability.find("CWE-ID").text
+                          if i.isdigit())
             if cwe:
                 cwe = cwe
             else:
                 cwe = None
-            cve = vulnerability.find('CVE-ID').text
-            steps_to_reproduce = vulnerability.find('PoC').text
+            cve = vulnerability.find("CVE-ID").text
+            steps_to_reproduce = vulnerability.find("PoC").text
             # just to make sure severity is in the recognised sentence casing form
-            severity = vulnerability.find('Risk').text.capitalize()
+            severity = vulnerability.find("Risk").text.capitalize()
             # Set 'Warning' severity === 'Informational'
-            if severity == 'Warning':
+            if severity == "Warning":
                 severity = "Informational"
 
-            description = (vulnerability.find('Description').text)
+            description = vulnerability.find("Description").text
             url = vulnerability.find("URL").text
             parsedUrl = urlparse(url)
             protocol = parsedUrl.scheme
@@ -55,11 +57,13 @@ class ImmuniwebXMLParser(object):
             port = ""  # Set port to empty string by default
             # Split the returned network address into host and
             try:  # If there is port number attached to host address
-                host, port = parsedUrl.netloc.split(':')
+                host, port = parsedUrl.netloc.split(":")
             except:  # there's no port attached to address
                 host = parsedUrl.netloc
 
-            dupe_key = hashlib.md5(str(description + title + severity).encode('utf-8')).hexdigest()
+            dupe_key = hashlib.md5(
+                str(description + title +
+                    severity).encode("utf-8")).hexdigest()
 
             # check if finding is a duplicate
             if dupe_key in self.dupes:
@@ -68,28 +72,35 @@ class ImmuniwebXMLParser(object):
                     finding.description += description
             else:  # finding is not a duplicate
                 # create finding
-                finding = Finding(title=title,
-                    test=test, active=False,
-                    verified=False, cve=cve,
+                finding = Finding(
+                    title=title,
+                    test=test,
+                    active=False,
+                    verified=False,
+                    cve=cve,
                     description=description,
                     severity=severity,
                     steps_to_reproduce=steps_to_reproduce,
                     numerical_severity=Finding.get_numerical_severity(
-                        severity
-                    ),
+                        severity),
                     cwe=cwe,
                     mitigation=mitigation,
                     impact=impact,
                     references=reference,
-                    dynamic_finding=True)
+                    dynamic_finding=True,
+                )
 
                 finding.unsaved_endpoints = list()
                 self.dupes[dupe_key] = finding
 
-                finding.unsaved_endpoints.append(Endpoint(
-                        host=host, port=port,
+                finding.unsaved_endpoints.append(
+                    Endpoint(
+                        host=host,
+                        port=port,
                         path=path,
                         protocol=protocol,
-                        query=query, fragment=fragment))
+                        query=query,
+                        fragment=fragment,
+                    ))
 
         self.items = list(self.dupes.values())

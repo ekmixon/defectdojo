@@ -13,16 +13,25 @@ import csv
 
 
 class DictUnicodeWriter(object):
-
-    def __init__(self, f, fieldnames, dialect=csv.excel, encoding="utf-8", **kwds):
+    def __init__(self,
+                 f,
+                 fieldnames,
+                 dialect=csv.excel,
+                 encoding="utf-8",
+                 **kwds):
         # Redirect output to a queue
         self.queue = io.StringIO()
-        self.writer = csv.DictWriter(self.queue, fieldnames, dialect=dialect, **kwds)
+        self.writer = csv.DictWriter(self.queue,
+                                     fieldnames,
+                                     dialect=dialect,
+                                     **kwds)
         self.stream = f
         self.encoder = codecs.getincrementalencoder(encoding)()
 
     def writerow(self, D):
-        self.writer.writerow({k: v.encode("utf-8") for k, v in list(D.items()) if v})
+        self.writer.writerow(
+            {k: v.encode("utf-8")
+             for k, v in list(D.items()) if v})
         # Fetch UTF-8 output from the queue ...
         data = self.queue.getvalue()
         data = data.decode("utf-8")

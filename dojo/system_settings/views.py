@@ -5,8 +5,7 @@ from django.contrib.auth.decorators import user_passes_test
 from django.urls import reverse
 from django.shortcuts import render
 from dojo.models import System_Settings
-from dojo.utils import (add_breadcrumb,
-                        get_celery_worker_status)
+from dojo.utils import add_breadcrumb, get_celery_worker_status
 from dojo.forms import SystemSettingsForm
 from django.conf import settings
 from django.http import HttpResponseRedirect
@@ -22,7 +21,7 @@ def system_settings(request):
         system_settings_obj = System_Settings()
 
     # Celery needs to be set with the setting: CELERY_RESULT_BACKEND = 'db+sqlite:///dojo.celeryresults.sqlite'
-    if hasattr(settings, 'CELERY_RESULT_BACKEND'):
+    if hasattr(settings, "CELERY_RESULT_BACKEND"):
         # Check the status of Celery by sending calling a celery task
         celery_bool = get_celery_worker_status()
 
@@ -36,7 +35,6 @@ def system_settings(request):
         celery_bool = False
         celery_msg = "Celery needs to have the setting CELERY_RESULT_BACKEND = 'db+sqlite:///dojo.celeryresults.sqlite' set in settings.py."
         celery_status = "Unkown"
-
     """
     **** To be Finished JIRA Status info ****
     jira_bool = True
@@ -67,18 +65,25 @@ def system_settings(request):
 
     """
     form = SystemSettingsForm(instance=system_settings_obj)
-    if request.method == 'POST':
+    if request.method == "POST":
         form = SystemSettingsForm(request.POST, instance=system_settings_obj)
         if form.is_valid():
             new_settings = form.save()
             messages.add_message(request,
                                  messages.SUCCESS,
-                                 'Settings saved.',
-                                 extra_tags='alert-success')
-            return HttpResponseRedirect(reverse('system_settings', ))
-    add_breadcrumb(title="Application settings", top_level=False, request=request)
-    return render(request, 'dojo/system_settings.html',
-                  {'form': form,
-                   'celery_bool': celery_bool,
-                   'celery_msg': celery_msg,
-                   'celery_status': celery_status})
+                                 "Settings saved.",
+                                 extra_tags="alert-success")
+            return HttpResponseRedirect(reverse("system_settings", ))
+    add_breadcrumb(title="Application settings",
+                   top_level=False,
+                   request=request)
+    return render(
+        request,
+        "dojo/system_settings.html",
+        {
+            "form": form,
+            "celery_bool": celery_bool,
+            "celery_msg": celery_msg,
+            "celery_status": celery_status,
+        },
+    )

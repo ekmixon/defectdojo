@@ -12,7 +12,6 @@ class AcunetixScannerParser(object):
     """
         This class parse Acunetix XML file using helper methods from 'parser_helper.py'.
     """
-
     def __init__(self, xml_output, test):
         acunetix_defectdojo_findings = get_defectdojo_findings(xml_output)
         self.items = []
@@ -24,31 +23,39 @@ class AcunetixScannerParser(object):
         for acunetix_defectdojo_finding in acunetix_defectdojo_findings:
 
             defectdojo_title = acunetix_defectdojo_finding.title
-            defectdojo_date = get_defectdojo_date(acunetix_defectdojo_finding.date)
-            defectdojo_cwe_number = get_cwe_number(acunetix_defectdojo_finding.cwe)
-            defectdojo_severity = get_severity(acunetix_defectdojo_finding.severity)
-            defectdojo_falsep = get_false_positive(acunetix_defectdojo_finding.false_p)
+            defectdojo_date = get_defectdojo_date(
+                acunetix_defectdojo_finding.date)
+            defectdojo_cwe_number = get_cwe_number(
+                acunetix_defectdojo_finding.cwe)
+            defectdojo_severity = get_severity(
+                acunetix_defectdojo_finding.severity)
+            defectdojo_falsep = get_false_positive(
+                acunetix_defectdojo_finding.false_p)
 
-            defectdojo_findings_titles = [finding.title for finding in defectdojo_findings]
+            defectdojo_findings_titles = [
+                finding.title for finding in defectdojo_findings
+            ]
 
             if defectdojo_title not in defectdojo_findings_titles:
                 finding = Finding(
-                            title=defectdojo_title,
-                            date=defectdojo_date,
-                            url=acunetix_defectdojo_finding.url,
-                            cwe=defectdojo_cwe_number,
-                            test=test,
-                            severity=defectdojo_severity,
-                            description=acunetix_defectdojo_finding.description,
-                            mitigation=acunetix_defectdojo_finding.mitigation,
-                            references=acunetix_defectdojo_finding.references,
-                            impact=acunetix_defectdojo_finding.impact,
-                            false_p=defectdojo_falsep,
-                            dynamic_finding=acunetix_defectdojo_finding.dynamic_finding
+                    title=defectdojo_title,
+                    date=defectdojo_date,
+                    url=acunetix_defectdojo_finding.url,
+                    cwe=defectdojo_cwe_number,
+                    test=test,
+                    severity=defectdojo_severity,
+                    description=acunetix_defectdojo_finding.description,
+                    mitigation=acunetix_defectdojo_finding.mitigation,
+                    references=acunetix_defectdojo_finding.references,
+                    impact=acunetix_defectdojo_finding.impact,
+                    false_p=defectdojo_falsep,
+                    dynamic_finding=acunetix_defectdojo_finding.
+                    dynamic_finding,
                 )
                 defectdojo_findings.append(finding)
             else:
-                print(("Duplicate finding : {defectdojo_title}".format(defectdojo_title=defectdojo_title)))
+                print(("Duplicate finding : {defectdojo_title}".format(
+                    defectdojo_title=defectdojo_title)))
 
         self.items = defectdojo_findings
 

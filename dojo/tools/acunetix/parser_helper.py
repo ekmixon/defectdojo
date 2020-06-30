@@ -3,14 +3,17 @@ from lxml import etree
 from lxml.etree import XMLSyntaxError
 from .parser_models import AcunetixScanReport
 from .parser_models import DefectDojoFinding
+
 # from memory_profiler import profile #Comment out this and profile in defectdojo repo
 import html2text
 
 logging.basicConfig(level=logging.ERROR)
 
 SCAN_NODE_TAG_NAME = "Scan"
-ACUNETIX_XML_SCAN_IGNORE_NODES = ['Technologies', 'Crawler']
-ACUNETIX_XML_REPORTITEM_IGNORE_NODES = ['TechnicalDetails', 'CVEList', 'CVSS', 'CVSS3']
+ACUNETIX_XML_SCAN_IGNORE_NODES = ["Technologies", "Crawler"]
+ACUNETIX_XML_REPORTITEM_IGNORE_NODES = [
+    "TechnicalDetails", "CVEList", "CVSS", "CVSS3"
+]
 
 
 # @profile
@@ -24,13 +27,17 @@ def get_root_node(filename):
         tree = etree.parse(filename)
         return tree.getroot()
     except XMLSyntaxError as xse:
-        logging.error("ERROR : error parsing XML file {filename}".format(filename=filename))
+        logging.error("ERROR : error parsing XML file {filename}".format(
+            filename=filename))
         raise xse
     except IOError as ioe:
-        logging.error("ERROR : xml file {filename} does't exist.".format(filename=filename))
+        logging.error("ERROR : xml file {filename} does't exist.".format(
+            filename=filename))
         raise ioe
     except Exception as e:
-        logging.error("ERROR : exception while processing XML file {filename}".format(filename=filename))
+        logging.error(
+            "ERROR : exception while processing XML file {filename}".format(
+                filename=filename))
         raise e
 
 
@@ -46,11 +53,10 @@ def get_scan_node(root):
     if scan_node.tag == SCAN_NODE_TAG_NAME:
         return scan_node
     else:
-        error_text = "ERROR: '{scan_node_tag_name}' node must be first " \
-                     "child of root element '{root_tag_name}'.".format(
-                                                        scan_node_tag_name=SCAN_NODE_TAG_NAME,
-                                                        root_tag_name=root.tag
-                                                                        )
+        error_text = ("ERROR: '{scan_node_tag_name}' node must be first "
+                      "child of root element '{root_tag_name}'.".format(
+                          scan_node_tag_name=SCAN_NODE_TAG_NAME,
+                          root_tag_name=root.tag))
         raise Exception(error_text)
 
 
@@ -64,7 +70,7 @@ def get_report_item_references_url(references_node):
     references_urls = []
     for reference_node in list(references_node):
         for child in list(reference_node):
-            if child.tag == 'URL':
+            if child.tag == "URL":
                 references_urls.append(child.text)
     return references_urls
 
@@ -97,12 +103,12 @@ def get_scan_report_items_details(report_items_node):
             report_item = dict()
             for child in list(report_item_node):
                 if child.tag not in ACUNETIX_XML_REPORTITEM_IGNORE_NODES:
-                    if child.tag == 'References':
+                    if child.tag == "References":
                         references_urls = get_report_item_references_url(child)
-                        report_item['ReferencesURLs'] = references_urls
-                    elif child.tag == 'CWEList':
+                        report_item["ReferencesURLs"] = references_urls
+                    elif child.tag == "CWEList":
                         cwe_id = get_cwe_id(child)
-                        report_item['CWEId'] = cwe_id
+                        report_item["CWEId"] = cwe_id
                     else:
                         report_item[child.tag] = child.text
 
@@ -120,16 +126,18 @@ def get_scan_details(scan_node):
     scan_details = dict()
     for child in list(scan_node):
         if child.tag not in ACUNETIX_XML_SCAN_IGNORE_NODES:
-            if child.tag == 'ReportItems':
+            if child.tag == "ReportItems":
                 report_items = get_scan_report_items_details(child)
-                scan_details['ReportItems'] = report_items
+                scan_details["ReportItems"] = report_items
             else:
                 scan_details[child.tag] = child.text
 
     if scan_details:
         return scan_details
     else:
-        error_text = "ERROR: fetching scan details from 'Scan' node. 'Scan' node can't be empty."
+        error_text = (
+            "ERROR: fetching scan details from 'Scan' node. 'Scan' node can't be empty."
+        )
         raise Exception(error_text)
 
 
@@ -172,20 +180,23 @@ def get_defectdojo_findings(filename):
     for report_item in acunetix_scan_report.ReportItems:
         defectdojo_finding = dict()
 
-        cwe = report_item['CWEId']
+        cwe = report_item["CWEId"]
         url = acunetix_scan_report.StartURL
-        title = acunetix_scan_report.Name + "_" + url + "_" + cwe + "_" + report_item['Affects']
+        title = (acunetix_scan_report.Name + "_" + url + "_" + cwe + "_" +
+                 report_item["Affects"])
 
-        defectdojo_finding['title'] = title
-        defectdojo_finding['date'] = acunetix_scan_report.StartTime
-        defectdojo_finding['cwe'] = cwe
-        defectdojo_finding['url'] = url
-        defectdojo_finding['severity'] = report_item['Severity']
-        defectdojo_finding['description'] = get_html2text(report_item['Description'])
-        defectdojo_finding['mitigation'] = get_html2text(report_item['Recommendation'])
-        defectdojo_finding['impact'] = get_html2text(report_item['Impact'])
-        defectdojo_finding['references'] = report_item['ReferencesURLs']
-        defectdojo_finding['false_p'] = report_item['IsFalsePositive']
+        defectdojo_finding["title"] = title
+        defectdojo_finding["date"] = acunetix_scan_report.StartTime
+        defectdojo_finding["cwe"] = cwe
+        defectdojo_finding["url"] = url
+        defectdojo_finding["severity"] = report_item["Severity"]
+        defectdojo_finding["description"] = get_html2text(
+            report_item["Description"])
+        defectdojo_finding["mitigation"] = get_html2text(
+            report_item["Recommendation"])
+        defectdojo_finding["impact"] = get_html2text(report_item["Impact"])
+        defectdojo_finding["references"] = report_item["ReferencesURLs"]
+        defectdojo_finding["false_p"] = report_item["IsFalsePositive"]
 
         finding = DefectDojoFinding(**defectdojo_finding)
         defectdojo_findings.append(finding)

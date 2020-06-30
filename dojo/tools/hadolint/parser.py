@@ -24,18 +24,19 @@ class HadolintParser(object):
         items = {}
         for node in tree:
             item = get_item(node, test)
-            unique_key = str(node['line']) + "-" + str(node['column']) + node['code'] + node['file']
+            unique_key = (str(node["line"]) + "-" + str(node["column"]) +
+                          node["code"] + node["file"])
             items[unique_key] = item
 
         return items.values()
 
 
 def get_item(vulnerability, test):
-    if 'level' in vulnerability:
+    if "level" in vulnerability:
         # If we're dealing with a license finding, there will be no cvssScore
-        if vulnerability['level'] == "error":
+        if vulnerability["level"] == "error":
             severity = "Critical"
-        elif vulnerability['level'] == "warning":
+        elif vulnerability["level"] == "warning":
             severity = "High"
         else:
             severity = "Info"
@@ -45,10 +46,11 @@ def get_item(vulnerability, test):
 
     # create the finding object
     finding = Finding(
-        title=vulnerability['code'] + ": " + vulnerability['file'],
+        title=vulnerability["code"] + ": " + vulnerability["file"],
         test=test,
         severity=severity,
-        description=vulnerability['file'] + ":" + str(vulnerability['line']) + "   " + vulnerability['code'] + "  " + vulnerability['message'],
+        description=vulnerability["file"] + ":" + str(vulnerability["line"]) +
+        "   " + vulnerability["code"] + "  " + vulnerability["message"],
         mitigation="No mitigation provided",
         active=False,
         verified=False,
@@ -56,7 +58,8 @@ def get_item(vulnerability, test):
         duplicate=False,
         out_of_scope=False,
         mitigated=None,
-        impact="No impact provided")
+        impact="No impact provided",
+    )
 
     finding.description = finding.description.strip()
 

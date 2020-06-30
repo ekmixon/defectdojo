@@ -14,17 +14,35 @@ from django.utils import timezone
 from django.contrib.admin.utils import NestedObjects
 from django.db import DEFAULT_DB_ALIAS
 from dojo.filters import EndpointFilter
-from dojo.forms import EditEndpointForm, \
-    DeleteEndpointForm, AddEndpointForm, DojoMetaDataForm
+from dojo.forms import (
+    EditEndpointForm,
+    DeleteEndpointForm,
+    AddEndpointForm,
+    DojoMetaDataForm,
+)
 from dojo.models import Product, Endpoint, Finding, System_Settings, DojoMeta
-from dojo.utils import get_page_items, add_breadcrumb, get_period_counts, get_system_setting, Product_Tab, calculate_grade, create_notification
+from dojo.utils import (
+    get_page_items,
+    add_breadcrumb,
+    get_period_counts,
+    get_system_setting,
+    Product_Tab,
+    calculate_grade,
+    create_notification,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def vulnerable_endpoints(request):
-    endpoints = Endpoint.objects.filter(finding__active=True, finding__verified=True, finding__false_p=False,
-                                        finding__duplicate=False, finding__out_of_scope=False, remediated=False).distinct()
+    endpoints = Endpoint.objects.filter(
+        finding__active=True,
+        finding__verified=True,
+        finding__false_p=False,
+        finding__duplicate=False,
+        finding__out_of_scope=False,
+        remediated=False,
+    ).distinct()
 
     # are they authorized
     if request.user.is_staff:
@@ -37,35 +55,45 @@ def vulnerable_endpoints(request):
             raise PermissionDenied
 
     product = None
-    if 'product' in request.GET:
-        p = request.GET.getlist('product', [])
+    if "product" in request.GET:
+        p = request.GET.getlist("product", [])
         if len(p) == 1:
             product = get_object_or_404(Product, id=p[0])
 
-    ids = get_endpoint_ids(EndpointFilter(request.GET, queryset=endpoints, user=request.user).qs)
-    endpoints = EndpointFilter(request.GET, queryset=endpoints.filter(id__in=ids), user=request.user)
-    endpoints_query = endpoints.qs.order_by('host')
+    ids = get_endpoint_ids(
+        EndpointFilter(request.GET, queryset=endpoints, user=request.user).qs)
+    endpoints = EndpointFilter(request.GET,
+                               queryset=endpoints.filter(id__in=ids),
+                               user=request.user)
+    endpoints_query = endpoints.qs.order_by("host")
     paged_endpoints = get_page_items(request, endpoints_query, 25)
-    add_breadcrumb(title="Vulnerable Endpoints", top_level=not len(request.GET), request=request)
+    add_breadcrumb(title="Vulnerable Endpoints",
+                   top_level=not len(request.GET),
+                   request=request)
 
     system_settings = System_Settings.objects.get()
 
     product_tab = None
     view_name = "All Endpoints"
     if product:
-        product_tab = Product_Tab(product.id, "Vulnerable Endpoints", tab="endpoints")
+        product_tab = Product_Tab(product.id,
+                                  "Vulnerable Endpoints",
+                                  tab="endpoints")
     return render(
-        request, 'dojo/endpoints.html', {
-            'product_tab': product_tab,
+        request,
+        "dojo/endpoints.html",
+        {
+            "product_tab": product_tab,
             "endpoints": paged_endpoints,
             "filtered": endpoints,
             "name": "Vulnerable Endpoints",
-        })
+        },
+    )
 
 
 def all_endpoints(request):
     endpoints = Endpoint.objects.all()
-    show_uri = get_system_setting('display_endpoint_uri')
+    show_uri = get_system_setting("display_endpoint_uri")
     # are they authorized
     if request.user.is_staff:
         pass
@@ -77,19 +105,27 @@ def all_endpoints(request):
             raise PermissionDenied
 
     product = None
-    if 'product' in request.GET:
-        p = request.GET.getlist('product', [])
+    if "product" in request.GET:
+        p = request.GET.getlist("product", [])
         if len(p) == 1:
             product = get_object_or_404(Product, id=p[0])
 
     if show_uri:
-        endpoints = EndpointFilter(request.GET, queryset=endpoints, user=request.user)
+        endpoints = EndpointFilter(request.GET,
+                                   queryset=endpoints,
+                                   user=request.user)
         paged_endpoints = get_page_items(request, endpoints.qs, 25)
     else:
-        ids = get_endpoint_ids(EndpointFilter(request.GET, queryset=endpoints, user=request.user).qs)
-        endpoints = EndpointFilter(request.GET, queryset=endpoints.filter(id__in=ids), user=request.user)
+        ids = get_endpoint_ids(
+            EndpointFilter(request.GET, queryset=endpoints,
+                           user=request.user).qs)
+        endpoints = EndpointFilter(request.GET,
+                                   queryset=endpoints.filter(id__in=ids),
+                                   user=request.user)
         paged_endpoints = get_page_items(request, endpoints.qs, 25)
-    add_breadcrumb(title="All Endpoints", top_level=not len(request.GET), request=request)
+    add_breadcrumb(title="All Endpoints",
+                   top_level=not len(request.GET),
+                   request=request)
 
     product_tab = None
     view_name = "All Endpoints"
@@ -98,13 +134,16 @@ def all_endpoints(request):
         product_tab = Product_Tab(product.id, "Endpoints", tab="endpoints")
 
     return render(
-        request, 'dojo/endpoints.html', {
-            'product_tab': product_tab,
+        request,
+        "dojo/endpoints.html",
+        {
+            "product_tab": product_tab,
             "endpoints": paged_endpoints,
             "filtered": endpoints,
             "name": view_name,
-            "show_uri": show_uri
-        })
+            "show_uri": show_uri,
+        },
+    )
 
 
 def get_endpoint_ids(endpoints):
@@ -112,10 +151,10 @@ def get_endpoint_ids(endpoints):
     ids = []
     for e in endpoints:
         if ":" in e.host:
-            host_no_port = e.host[:e.host.index(':')]
+            host_no_port = e.host[:e.host.index(":")]
         else:
             host_no_port = e.host
-        key = host_no_port + '-' + str(e.product.id)
+        key = host_no_port + "-" + str(e.product.id)
         if key in hosts:
             continue
         else:
@@ -130,12 +169,14 @@ def view_endpoint(request, eid):
     endpoints = Endpoint.objects.filter(host__regex="^" + host + ":?",
                                         product=endpoint.product).distinct()
 
-    if (request.user in endpoint.product.authorized_users.all()) or request.user.is_staff:
+    if (request.user in endpoint.product.authorized_users.all()
+        ) or request.user.is_staff:
         pass
     else:
         raise PermissionDenied
 
-    endpoint_metadata = dict(endpoint.endpoint_meta.values_list('name', 'value'))
+    endpoint_metadata = dict(
+        endpoint.endpoint_meta.values_list("name", "value"))
 
     all_findings = Finding.objects.filter(endpoints__in=endpoints).distinct()
 
@@ -143,10 +184,11 @@ def view_endpoint(request, eid):
                                              active=True,
                                              verified=True).distinct()
 
-    closed_findings = Finding.objects.filter(endpoints__in=endpoints,
-                                             mitigated__isnull=False).distinct()
+    closed_findings = Finding.objects.filter(
+        endpoints__in=endpoints, mitigated__isnull=False).distinct()
     if all_findings:
-        start_date = timezone.make_aware(datetime.combine(all_findings.last().date, datetime.min.time()))
+        start_date = timezone.make_aware(
+            datetime.combine(all_findings.last().date, datetime.min.time()))
     else:
         start_date = timezone.now()
     end_date = timezone.now()
@@ -156,8 +198,15 @@ def view_endpoint(request, eid):
     # include current month
     months_between += 1
 
-    monthly_counts = get_period_counts(active_findings, all_findings, closed_findings, None, months_between, start_date,
-                                       relative_delta='months')
+    monthly_counts = get_period_counts(
+        active_findings,
+        all_findings,
+        closed_findings,
+        None,
+        months_between,
+        start_date,
+        relative_delta="months",
+    )
 
     paged_findings = get_page_items(request, active_findings, 25)
 
@@ -167,47 +216,59 @@ def view_endpoint(request, eid):
         vulnerable = True
 
     product_tab = Product_Tab(endpoint.product.id, "Endpoint", tab="endpoints")
-    return render(request,
-                  "dojo/view_endpoint.html",
-                  {"endpoint": endpoint,
-                   'product_tab': product_tab,
-                   "endpoints": endpoints,
-                   "findings": paged_findings,
-                   'all_findings': all_findings,
-                   'opened_per_month': monthly_counts['opened_per_period'],
-                   'endpoint_metadata': endpoint_metadata,
-                   'vulnerable': vulnerable,
-                   })
+    return render(
+        request,
+        "dojo/view_endpoint.html",
+        {
+            "endpoint": endpoint,
+            "product_tab": product_tab,
+            "endpoints": endpoints,
+            "findings": paged_findings,
+            "all_findings": all_findings,
+            "opened_per_month": monthly_counts["opened_per_period"],
+            "endpoint_metadata": endpoint_metadata,
+            "vulnerable": vulnerable,
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
 def edit_endpoint(request, eid):
     endpoint = get_object_or_404(Endpoint, id=eid)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = EditEndpointForm(request.POST, instance=endpoint)
         if form.is_valid():
             endpoint = form.save()
-            tags = request.POST.getlist('tags')
+            tags = request.POST.getlist("tags")
             t = ", ".join(tags)
             endpoint.tags = t
-            messages.add_message(request,
-                                 messages.SUCCESS,
-                                 'Endpoint updated successfully.',
-                                 extra_tags='alert-success')
-            return HttpResponseRedirect(reverse('view_endpoint', args=(endpoint.id,)))
-    add_breadcrumb(parent=endpoint, title="Edit", top_level=False, request=request)
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                "Endpoint updated successfully.",
+                extra_tags="alert-success",
+            )
+            return HttpResponseRedirect(
+                reverse("view_endpoint", args=(endpoint.id, )))
+    add_breadcrumb(parent=endpoint,
+                   title="Edit",
+                   top_level=False,
+                   request=request)
     form = EditEndpointForm(instance=endpoint)
-    form.initial['tags'] = [tag.name for tag in endpoint.tags]
+    form.initial["tags"] = [tag.name for tag in endpoint.tags]
 
     product_tab = Product_Tab(endpoint.product.id, "Endpoint", tab="endpoints")
 
-    return render(request,
-                  "dojo/edit_endpoint.html",
-                  {"endpoint": endpoint,
-                   'product_tab': product_tab,
-                   "form": form,
-                   })
+    return render(
+        request,
+        "dojo/edit_endpoint.html",
+        {
+            "endpoint": endpoint,
+            "product_tab": product_tab,
+            "form": form,
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
@@ -216,137 +277,173 @@ def delete_endpoint(request, eid):
     product = endpoint.product
     form = DeleteEndpointForm(instance=endpoint)
 
-    if request.method == 'POST':
-        if 'id' in request.POST and str(endpoint.id) == request.POST['id']:
+    if request.method == "POST":
+        if "id" in request.POST and str(endpoint.id) == request.POST["id"]:
             form = DeleteEndpointForm(request.POST, instance=endpoint)
             if form.is_valid():
                 del endpoint.tags
                 endpoint.delete()
-                messages.add_message(request,
-                                     messages.SUCCESS,
-                                     'Endpoint and relationships removed.',
-                                     extra_tags='alert-success')
-                create_notification(event='other',
-                                    title='Deletion of %s' % endpoint,
-                                    description='The endpoint "%s" was deleted by %s' % (endpoint, request.user),
-                                    url=request.build_absolute_uri(reverse('endpoints')),
-                                    icon="exclamation-triangle")
-                return HttpResponseRedirect(reverse('view_product', args=(product.id,)))
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    "Endpoint and relationships removed.",
+                    extra_tags="alert-success",
+                )
+                create_notification(
+                    event="other",
+                    title="Deletion of %s" % endpoint,
+                    description='The endpoint "%s" was deleted by %s' %
+                    (endpoint, request.user),
+                    url=request.build_absolute_uri(reverse("endpoints")),
+                    icon="exclamation-triangle",
+                )
+                return HttpResponseRedirect(
+                    reverse("view_product", args=(product.id, )))
 
     collector = NestedObjects(using=DEFAULT_DB_ALIAS)
     collector.collect([endpoint])
     rels = collector.nested()
 
-    product_tab = Product_Tab(endpoint.product.id, "Delete Endpoint", tab="endpoints")
+    product_tab = Product_Tab(endpoint.product.id,
+                              "Delete Endpoint",
+                              tab="endpoints")
 
-    return render(request, 'dojo/delete_endpoint.html',
-                  {'endpoint': endpoint,
-                   'product_tab': product_tab,
-                   'form': form,
-                   'rels': rels,
-                   })
+    return render(
+        request,
+        "dojo/delete_endpoint.html",
+        {
+            "endpoint": endpoint,
+            "product_tab": product_tab,
+            "form": form,
+            "rels": rels,
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
 def add_endpoint(request, pid):
     product = get_object_or_404(Product, id=pid)
-    template = 'dojo/add_endpoint.html'
-    if '_popup' in request.GET:
-        template = 'dojo/add_related.html'
+    template = "dojo/add_endpoint.html"
+    if "_popup" in request.GET:
+        template = "dojo/add_related.html"
 
     form = AddEndpointForm(product=product)
-    if request.method == 'POST':
+    if request.method == "POST":
         form = AddEndpointForm(request.POST, product=product)
         if form.is_valid():
             endpoints = form.save()
-            tags = request.POST.getlist('tags')
+            tags = request.POST.getlist("tags")
             t = ", ".join(tags)
             for e in endpoints:
                 e.tags = t
-            messages.add_message(request,
-                                 messages.SUCCESS,
-                                 'Endpoint added successfully.',
-                                 extra_tags='alert-success')
-            if '_popup' in request.GET:
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                "Endpoint added successfully.",
+                extra_tags="alert-success",
+            )
+            if "_popup" in request.GET:
                 resp = '<script type="text/javascript">opener.emptyEndpoints(window);</script>'
                 for endpoint in endpoints:
-                    resp += '<script type="text/javascript">opener.dismissAddAnotherPopupDojo(window, "%s", "%s");</script>' \
-                            % (escape(endpoint._get_pk_val()), escape(endpoint))
+                    resp += (
+                        '<script type="text/javascript">opener.dismissAddAnotherPopupDojo(window, "%s", "%s");</script>'
+                        % (escape(endpoint._get_pk_val()), escape(endpoint)))
                 resp += '<script type="text/javascript">window.close();</script>'
                 return HttpResponse(resp)
             else:
-                return HttpResponseRedirect(reverse('endpoints') + "?product=" + pid)
+                return HttpResponseRedirect(
+                    reverse("endpoints") + "?product=" + pid)
 
     product_tab = None
-    if '_popup' not in request.GET:
+    if "_popup" not in request.GET:
         product_tab = Product_Tab(product.id, "Add Endpoint", tab="endpoints")
 
-    return render(request, template, {
-        'product_tab': product_tab,
-        'name': 'Add Endpoint',
-        'form': form})
+    return render(
+        request,
+        template,
+        {
+            "product_tab": product_tab,
+            "name": "Add Endpoint",
+            "form": form
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
 def add_product_endpoint(request):
     form = AddEndpointForm()
-    if request.method == 'POST':
+    if request.method == "POST":
         form = AddEndpointForm(request.POST)
         if form.is_valid():
             endpoints = form.save()
-            tags = request.POST.getlist('tags')
+            tags = request.POST.getlist("tags")
             t = ", ".join(tags)
             for e in endpoints:
                 e.tags = t
-            messages.add_message(request,
-                                 messages.SUCCESS,
-                                 'Endpoint added successfully.',
-                                 extra_tags='alert-success')
-            return HttpResponseRedirect(reverse('endpoints') + "?product=%s" % form.product.id)
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                "Endpoint added successfully.",
+                extra_tags="alert-success",
+            )
+            return HttpResponseRedirect(
+                reverse("endpoints") + "?product=%s" % form.product.id)
     add_breadcrumb(title="Add Endpoint", top_level=False, request=request)
-    return render(request,
-                  'dojo/add_endpoint.html',
-                  {'name': 'Add Endpoint',
-                   'form': form,
-                   })
+    return render(request, "dojo/add_endpoint.html", {
+        "name": "Add Endpoint",
+        "form": form,
+    })
 
 
 @user_passes_test(lambda u: u.is_staff)
 def add_meta_data(request, eid):
     endpoint = Endpoint.objects.get(id=eid)
-    if request.method == 'POST':
-        form = DojoMetaDataForm(request.POST, instance=DojoMeta(endpoint=endpoint))
+    if request.method == "POST":
+        form = DojoMetaDataForm(request.POST,
+                                instance=DojoMeta(endpoint=endpoint))
         if form.is_valid():
             form.save()
-            messages.add_message(request,
-                                 messages.SUCCESS,
-                                 'Metadata added successfully.',
-                                 extra_tags='alert-success')
-            if 'add_another' in request.POST:
-                return HttpResponseRedirect(reverse('add_meta_data', args=(eid,)))
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                "Metadata added successfully.",
+                extra_tags="alert-success",
+            )
+            if "add_another" in request.POST:
+                return HttpResponseRedirect(
+                    reverse("add_meta_data", args=(eid, )))
             else:
-                return HttpResponseRedirect(reverse('view_endpoint', args=(eid,)))
+                return HttpResponseRedirect(
+                    reverse("view_endpoint", args=(eid, )))
     else:
         form = DojoMetaDataForm()
 
-    add_breadcrumb(parent=endpoint, title="Add Metadata", top_level=False, request=request)
-    product_tab = Product_Tab(endpoint.product.id, "Add Metadata", tab="endpoints")
-    return render(request,
-                  'dojo/add_endpoint_meta_data.html',
-                  {'form': form,
-                   'product_tab': product_tab,
-                   'endpoint': endpoint,
-                   })
+    add_breadcrumb(parent=endpoint,
+                   title="Add Metadata",
+                   top_level=False,
+                   request=request)
+    product_tab = Product_Tab(endpoint.product.id,
+                              "Add Metadata",
+                              tab="endpoints")
+    return render(
+        request,
+        "dojo/add_endpoint_meta_data.html",
+        {
+            "form": form,
+            "product_tab": product_tab,
+            "endpoint": endpoint,
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
 def edit_meta_data(request, eid):
     endpoint = Endpoint.objects.get(id=eid)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         for key, value in request.POST.items():
-            if key.startswith('cfv_'):
-                cfv_id = int(key.split('_')[1])
+            if key.startswith("cfv_"):
+                cfv_id = int(key.split("_")[1])
                 cfv = get_object_or_404(DojoMeta, id=cfv_id)
 
                 value = value.strip()
@@ -355,45 +452,61 @@ def edit_meta_data(request, eid):
                     cfv.save()
                 else:
                     cfv.delete()
-        messages.add_message(request,
-                             messages.SUCCESS,
-                             'Metadata edited successfully.',
-                             extra_tags='alert-success')
-        return HttpResponseRedirect(reverse('view_endpoint', args=(eid,)))
+        messages.add_message(
+            request,
+            messages.SUCCESS,
+            "Metadata edited successfully.",
+            extra_tags="alert-success",
+        )
+        return HttpResponseRedirect(reverse("view_endpoint", args=(eid, )))
 
-    product_tab = Product_Tab(endpoint.product.id, "Edit Metadata", tab="endpoints")
-    return render(request,
-                  'dojo/edit_endpoint_meta_data.html',
-                  {'endpoint': endpoint,
-                   'product_tab': product_tab,
-                   })
+    product_tab = Product_Tab(endpoint.product.id,
+                              "Edit Metadata",
+                              tab="endpoints")
+    return render(
+        request,
+        "dojo/edit_endpoint_meta_data.html",
+        {
+            "endpoint": endpoint,
+            "product_tab": product_tab,
+        },
+    )
 
 
 @user_passes_test(lambda u: u.is_staff)
 def endpoint_bulk_update_all(request, pid=None):
     if request.method == "POST":
-        endpoints_to_update = request.POST.getlist('endpoints_to_update')
-        if request.POST.get('delete_bulk_endpoints') and endpoints_to_update:
+        endpoints_to_update = request.POST.getlist("endpoints_to_update")
+        if request.POST.get("delete_bulk_endpoints") and endpoints_to_update:
             finds = Endpoint.objects.filter(id__in=endpoints_to_update)
-            product_calc = list(Product.objects.filter(endpoint__id__in=endpoints_to_update).distinct())
+            product_calc = list(
+                Product.objects.filter(
+                    endpoint__id__in=endpoints_to_update).distinct())
             finds.delete()
             for prod in product_calc:
                 calculate_grade(prod)
         else:
             if endpoints_to_update:
-                endpoints_to_update = request.POST.getlist('endpoints_to_update')
-                finds = Endpoint.objects.filter(id__in=endpoints_to_update).order_by("endpoint_meta__product__id")
+                endpoints_to_update = request.POST.getlist(
+                    "endpoints_to_update")
+                finds = Endpoint.objects.filter(
+                    id__in=endpoints_to_update).order_by(
+                        "endpoint_meta__product__id")
                 for endpoint in finds:
                     endpoint.remediated = not endpoint.remediated
                     endpoint.save()
-                messages.add_message(request,
-                                     messages.SUCCESS,
-                                     'Bulk edit of endpoints was successful.  Check to make sure it is what you intended.',
-                                     extra_tags='alert-success')
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    "Bulk edit of endpoints was successful.  Check to make sure it is what you intended.",
+                    extra_tags="alert-success",
+                )
             else:
                 # raise Exception('STOP')
-                messages.add_message(request,
-                                     messages.ERROR,
-                                     'Unable to process bulk update. Required fields were not selected.',
-                                     extra_tags='alert-danger')
-    return HttpResponseRedirect(reverse('endpoints', args=()))
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    "Unable to process bulk update. Required fields were not selected.",
+                    extra_tags="alert-danger",
+                )
+    return HttpResponseRedirect(reverse("endpoints", args=()))

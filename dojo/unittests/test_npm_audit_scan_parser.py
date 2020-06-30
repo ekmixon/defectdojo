@@ -4,7 +4,6 @@ from dojo.models import Test
 
 
 class TestNpmAuditParser(TestCase):
-
     def test_npm_audit_parser_without_file_has_no_findings(self):
         parser = NpmAuditParser(None, Test())
         self.assertEqual(0, len(parser.items))

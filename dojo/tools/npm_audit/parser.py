@@ -20,10 +20,10 @@ class NpmAuditParser(object):
         try:
             data = json_output.read()
             try:
-                tree = json.loads(str(data, 'utf-8'))
+                tree = json.loads(str(data, "utf-8"))
             except:
                 tree = json.loads(data)
-            subtree = tree.get('advisories')
+            subtree = tree.get("advisories")
         except:
             raise Exception("Invalid format")
 
@@ -34,7 +34,7 @@ class NpmAuditParser(object):
 
         for key, node in tree.items():
             item = get_item(node, test)
-            unique_key = str(node['id']) + str(node['module_name'])
+            unique_key = str(node["id"]) + str(node["module_name"])
             items[unique_key] = item
 
         return list(items.values())
@@ -42,35 +42,38 @@ class NpmAuditParser(object):
 
 def get_item(item_node, test):
 
-    if item_node['severity'] == 'low':
-        severity = 'Low'
-    elif item_node['severity'] == 'moderate':
-        severity = 'Medium'
-    elif item_node['severity'] == 'high':
-        severity = 'High'
-    elif item_node['severity'] == 'critical':
-        severity = 'Critical'
+    if item_node["severity"] == "low":
+        severity = "Low"
+    elif item_node["severity"] == "moderate":
+        severity = "Medium"
+    elif item_node["severity"] == "high":
+        severity = "High"
+    elif item_node["severity"] == "critical":
+        severity = "Critical"
     else:
-        severity = 'Info'
+        severity = "Info"
 
-    finding = Finding(title=item_node['title'] + " - " + "(" + item_node['module_name'] + ", " + item_node['vulnerable_versions'] + ")",
-                      test=test,
-                      severity=severity,
-                      description=item_node['overview'] + "\n Vulnerable Module: " +
-                      item_node['module_name'] + "\n Vulnerable Versions: " +
-                      str(item_node['vulnerable_versions']) + "\n Patched Version: " +
-                      str(item_node['patched_versions']) + "\n Vulnerable Path: " + str(item_node['findings'][0]['paths']) + "\n CWE: " +
-                      str(item_node['cwe']) + "\n Access: " +
-                      str(item_node['access']),
-                      cwe=item_node['cwe'][4:],
-                      mitigation=item_node['recommendation'],
-                      references=item_node['url'],
-                      active=False,
-                      verified=False,
-                      false_p=False,
-                      duplicate=False,
-                      out_of_scope=False,
-                      mitigated=None,
-                      impact="No impact provided")
+    finding = Finding(
+        title=item_node["title"] + " - " + "(" + item_node["module_name"] +
+        ", " + item_node["vulnerable_versions"] + ")",
+        test=test,
+        severity=severity,
+        description=item_node["overview"] + "\n Vulnerable Module: " +
+        item_node["module_name"] + "\n Vulnerable Versions: " +
+        str(item_node["vulnerable_versions"]) + "\n Patched Version: " +
+        str(item_node["patched_versions"]) + "\n Vulnerable Path: " +
+        str(item_node["findings"][0]["paths"]) + "\n CWE: " +
+        str(item_node["cwe"]) + "\n Access: " + str(item_node["access"]),
+        cwe=item_node["cwe"][4:],
+        mitigation=item_node["recommendation"],
+        references=item_node["url"],
+        active=False,
+        verified=False,
+        false_p=False,
+        duplicate=False,
+        out_of_scope=False,
+        mitigated=None,
+        impact="No impact provided",
+    )
 
     return finding

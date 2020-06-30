@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class SonarQubeHtmlParser(object):
-
     def __init__(self, filename, test):
         parser = etree.HTMLParser()
         tree = etree.parse(filename, parser)
@@ -21,8 +20,9 @@ class SonarQubeHtmlParser(object):
     def get_items(self, tree, test):
         items = list()
         # Check that there is at least one vulnerability (the vulnerabilities table is absent when no vuln are found)
-        detailTbody = tree.xpath("/html/body/div[contains(@class,'detail')]/table/tbody")
-        if(len(detailTbody) == 2):
+        detailTbody = tree.xpath(
+            "/html/body/div[contains(@class,'detail')]/table/tbody")
+        if len(detailTbody) == 2:
             # First is "Detail of the Detected Vulnerabilities" (not present if no vuln)
             # Second is "Known Security Rules"
             vulnerabilities_table = list(detailTbody[0].iter("tr"))
@@ -39,41 +39,48 @@ class SonarQubeHtmlParser(object):
             for vuln in vulnerabilities_table:
                 vuln_properties = list(vuln.iter("td"))
                 vuln_rule_name = list(vuln_properties[0].iter("a"))[0].text
-                vuln_severity = self.convert_sonar_severity(vuln_properties[1].text)
+                vuln_severity = self.convert_sonar_severity(
+                    vuln_properties[1].text)
                 vuln_file_path = vuln_properties[2].text
                 vuln_line = vuln_properties[3].text
                 vuln_title = vuln_properties[4].text
                 vuln_mitigation = vuln_properties[5].text
                 if vuln_title is None or vuln_mitigation is None:
-                    raise Exception("Parser ValueError: can't find a title or a mitigation for vulnerability of name " + vuln_rule_name)
+                    raise Exception(
+                        "Parser ValueError: can't find a title or a mitigation for vulnerability of name "
+                        + vuln_rule_name)
                 try:
                     vuln_details = rulesDic[vuln_rule_name]
                     vuln_description = self.get_description(vuln_details)
-                    vuln_references = self.get_references(vuln_rule_name, vuln_details)
+                    vuln_references = self.get_references(
+                        vuln_rule_name, vuln_details)
                     vuln_cwe = self.get_cwe(vuln_references)
                 except KeyError:
                     vuln_description = "No description provided"
                     vuln_references = ""
                     vuln_cwe = 0
-                find = Finding(title=vuln_title,
-                               cwe=int(vuln_cwe),
-                               description=vuln_description,
-                               file_path=vuln_file_path,
-                               line=vuln_line,
-                               test=test,
-                               severity=vuln_severity,
-                               mitigation=vuln_mitigation,
-                               references=vuln_references,
-                               active=False,
-                               verified=False,
-                               false_p=False,
-                               duplicate=False,
-                               out_of_scope=False,
-                               mitigated=None,
-                               impact="No impact provided",
-                               numerical_severity=Finding.get_numerical_severity(vuln_severity),
-                               static_finding=True,
-                               dynamic_finding=False)
+                find = Finding(
+                    title=vuln_title,
+                    cwe=int(vuln_cwe),
+                    description=vuln_description,
+                    file_path=vuln_file_path,
+                    line=vuln_line,
+                    test=test,
+                    severity=vuln_severity,
+                    mitigation=vuln_mitigation,
+                    references=vuln_references,
+                    active=False,
+                    verified=False,
+                    false_p=False,
+                    duplicate=False,
+                    out_of_scope=False,
+                    mitigated=None,
+                    impact="No impact provided",
+                    numerical_severity=Finding.get_numerical_severity(
+                        vuln_severity),
+                    static_finding=True,
+                    dynamic_finding=False,
+                )
                 items.append(find)
         return items
 
@@ -91,7 +98,8 @@ class SonarQubeHtmlParser(object):
             return "Info"
 
     def get_description(self, vuln_details):
-        rule_description = etree.tostring(vuln_details, pretty_print=True).decode('utf-8', errors='replace')
+        rule_description = etree.tostring(
+            vuln_details, pretty_print=True).decode("utf-8", errors="replace")
         rule_description = rule_description.split("<h2>See", 1)[0]
         rule_description = (str(rule_description)).replace("<h2>", "**")
         rule_description = (str(rule_description)).replace("</h2>", "**")

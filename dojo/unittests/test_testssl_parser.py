@@ -4,7 +4,6 @@ from dojo.models import Test
 
 
 class TestTestsslCSVParser(TestCase):
-
     def test_parse_without_file_has_no_findings(self):
         parser = TestsslCSVParser(None, Test())
         self.assertEqual(0, len(parser.items))
@@ -20,6 +19,7 @@ class TestTestsslCSVParser(TestCase):
         self.assertEqual(1, len(parser.items))
 
     def test_parse_file_with_many_vuln_has_many_findings(self):
-        testfile = open("dojo/unittests/scans/testssl/defectdojo_many_vuln.csv")
+        testfile = open(
+            "dojo/unittests/scans/testssl/defectdojo_many_vuln.csv")
         parser = TestsslCSVParser(testfile, Test())
         self.assertEqual(99, len(parser.items))

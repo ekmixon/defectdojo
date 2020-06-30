@@ -19,8 +19,10 @@ class Login(unittest.TestCase):
         driver = self.driver
         driver.get(self.base_url + "login")
         driver.find_element_by_id("id_username").clear()
-        driver.find_element_by_id("id_username").send_keys(os.environ['DD_ADMIN_USER'])
-        driver.find_element_by_id("id_password").send_keys(os.environ['DD_ADMIN_PASSWORD'])
+        driver.find_element_by_id("id_username").send_keys(
+            os.environ["DD_ADMIN_USER"])
+        driver.find_element_by_id("id_password").send_keys(
+            os.environ["DD_ADMIN_PASSWORD"])
         driver.find_element_by_css_selector("button.btn.btn-success").click()
         return driver
 
@@ -30,7 +32,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "engagement"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -40,7 +42,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "product"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -50,7 +52,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "finding/open"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -60,7 +62,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "endpoint"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -70,7 +72,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "user"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -80,7 +82,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "calendar"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -90,7 +92,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "metrics/product/type"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -100,7 +102,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "metrics/product/type/counts"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -110,7 +112,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "metrics/simple"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -120,7 +122,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "metrics/engineer"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -130,7 +132,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "metrics/research"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
@@ -140,7 +142,7 @@ class Login(unittest.TestCase):
         url = self.base_url + "metrics?date=5&view=dashboard"
         s = requests.Session()
         for cookie in cookies:
-            s.cookies.set(cookie['name'], cookie['value'])
+            s.cookies.set(cookie["name"], cookie["value"])
         r = s.get(url)
         self.assertEqual(r.status_code, 200)
 
