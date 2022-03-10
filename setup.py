@@ -9,10 +9,10 @@ setup(
     description="Tool for managing vulnerability engagements",
     install_requires=[
         'defusedxml',
-        'Django==2.2.4',
+        'Django==2.2.27',
         'django-auditlog==0.4.0',
         'django-custom-field',
-        'django-filter==1.0.4',
+        'django-filter==2.4.0',
         'django-imagekit',
         'django-multiselectfield',
         'django-overextends==0.4.3',  # Required for extensions
