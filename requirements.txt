@@ -5,7 +5,7 @@ bleach-whitelist>=0.0.10
 celery==5.2.2
 coverage==4.5.3
 defusedxml==0.6.0
-django_celery_results==1.1.1
+django_celery_results==2.4.0
 django-auditlog==0.4.5
 git+https://github.com/Maffooch/django-custom-field.git@master#egg=django-custom-field
 django-dbbackup>=3.2.0
