@@ -38,9 +38,9 @@ class LoginRequiredMiddleware:
             path = request.path_info.lstrip('/')
             if not any(m.match(path) for m in EXEMPT_URLS):
                 if path == 'logout':
-                    fullURL = "%s?next=%s" % (settings.LOGIN_URL, '/')
+                    fullURL = f"{settings.LOGIN_URL}?next=/"
                 else:
-                    fullURL = "%s?next=%s" % (settings.LOGIN_URL, urlquote(request.get_full_path()))
+                    fullURL = f"{settings.LOGIN_URL}?next={urlquote(request.get_full_path())}"
                 return HttpResponseRedirect(fullURL)
         return response
 

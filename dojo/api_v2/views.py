@@ -36,27 +36,38 @@ class EndPointViewSet(mixins.ListModelMixin,
     filter_fields = ('id', 'host', 'product')
 
     def get_queryset(self):
-        if not self.request.user.is_staff:
-            return Endpoint.objects.filter(
-                product__authorized_users__in=[self.request.user])
-        else:
-            return Endpoint.objects.all()
+        return (
+            Endpoint.objects.all()
+            if self.request.user.is_staff
+            else Endpoint.objects.filter(
+                product__authorized_users__in=[self.request.user]
+            )
+        )
 
     @detail_route(methods=['post'], permission_classes=[permissions.UserHasReportGeneratePermission])
     def generate_report(self, request, pk=None):
         endpoint = get_object_or_404(Endpoint.objects, id=pk)
 
-        options = {}
         # prepare post data
         report_options = serializers.ReportGenerateOptionSerializer(data=request.data)
-        if report_options.is_valid():
-            options['include_finding_notes'] = report_options.validated_data['include_finding_notes']
-            options['include_finding_images'] = report_options.validated_data['include_finding_images']
-            options['include_executive_summary'] = report_options.validated_data['include_executive_summary']
-            options['include_table_of_contents'] = report_options.validated_data['include_table_of_contents']
-        else:
+        if not report_options.is_valid():
             return Response(report_options.errors,
                 status=status.HTTP_400_BAD_REQUEST)
+
+        options = {
+            'include_finding_notes': report_options.validated_data[
+                'include_finding_notes'
+            ],
+            'include_finding_images': report_options.validated_data[
+                'include_finding_images'
+            ],
+            'include_executive_summary': report_options.validated_data[
+                'include_executive_summary'
+            ],
+            'include_table_of_contents': report_options.validated_data[
+                'include_table_of_contents'
+            ],
+        }
 
         data = report_generate(request, endpoint, options)
         report = serializers.ReportGenerateSerializer(data)
@@ -78,11 +89,13 @@ class EngagementViewSet(mixins.ListModelMixin,
                      'pen_test', 'status', 'product')
 
     def get_queryset(self):
-        if not self.request.user.is_staff:
-            return Engagement.objects.filter(
-                product__authorized_users__in=[self.request.user])
-        else:
-            return Engagement.objects.all()
+        return (
+            Engagement.objects.all()
+            if self.request.user.is_staff
+            else Engagement.objects.filter(
+                product__authorized_users__in=[self.request.user]
+            )
+        )
 
     @detail_route(methods=["post"])
     def close(self, request, pk=None):
@@ -100,17 +113,26 @@ class EngagementViewSet(mixins.ListModelMixin,
     def generate_report(self, request, pk=None):
         engagement = get_object_or_404(Engagement.objects, id=pk)
 
-        options = {}
         # prepare post data
         report_options = serializers.ReportGenerateOptionSerializer(data=request.data)
-        if report_options.is_valid():
-            options['include_finding_notes'] = report_options.validated_data['include_finding_notes']
-            options['include_finding_images'] = report_options.validated_data['include_finding_images']
-            options['include_executive_summary'] = report_options.validated_data['include_executive_summary']
-            options['include_table_of_contents'] = report_options.validated_data['include_table_of_contents']
-        else:
+        if not report_options.is_valid():
             return Response(report_options.errors,
                 status=status.HTTP_400_BAD_REQUEST)
+
+        options = {
+            'include_finding_notes': report_options.validated_data[
+                'include_finding_notes'
+            ],
+            'include_finding_images': report_options.validated_data[
+                'include_finding_images'
+            ],
+            'include_executive_summary': report_options.validated_data[
+                'include_executive_summary'
+            ],
+            'include_table_of_contents': report_options.validated_data[
+                'include_table_of_contents'
+            ],
+        }
 
         data = report_generate(request, engagement, options)
         report = serializers.ReportGenerateSerializer(data)
@@ -152,11 +174,11 @@ class FindingViewSet(mixins.ListModelMixin,
                      'test__engagement')
 
     def get_queryset(self):
-        if not self.request.user.is_staff:
-            return Finding.objects.filter(
-                reporter_id__in=[self.request.user])
-        else:
-            return Finding.objects.all()
+        return (
+            Finding.objects.all()
+            if self.request.user.is_staff
+            else Finding.objects.filter(reporter_id__in=[self.request.user])
+        )
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -170,19 +192,18 @@ class FindingViewSet(mixins.ListModelMixin,
 
         if request.method == 'POST':
             new_tags = serializers.TagSerializer(data=request.data)
-            if new_tags.is_valid():
-                all_tags = finding.tags
-                all_tags = serializers.TagSerializer({"tags": all_tags}).data['tags']
-
-                for tag in new_tags.validated_data['tags']:
-                    if tag not in all_tags:
-                        all_tags.append(tag)
-                t = ", ".join(all_tags)
-                finding.tags = t
-                finding.save()
-            else:
+            if not new_tags.is_valid():
                 return Response(new_tags.errors,
                     status=status.HTTP_400_BAD_REQUEST)
+            all_tags = finding.tags
+            all_tags = serializers.TagSerializer({"tags": all_tags}).data['tags']
+
+            for tag in new_tags.validated_data['tags']:
+                if tag not in all_tags:
+                    all_tags.append(tag)
+            t = ", ".join(all_tags)
+            finding.tags = t
+            finding.save()
         tags = finding.tags
         serialized_tags = serializers.TagSerializer({"tags": tags})
         return Response(serialized_tags.data)
@@ -192,41 +213,52 @@ class FindingViewSet(mixins.ListModelMixin,
         """ Remove Tag(s) from finding list of tags """
         finding = get_object_or_404(Finding.objects, id=pk)
         delete_tags = serializers.TagSerializer(data=request.data)
-        if delete_tags.is_valid():
-            all_tags = finding.tags
-            all_tags = serializers.TagSerializer({"tags": all_tags}).data['tags']
-            del_tags = delete_tags.validated_data['tags']
-            if len(del_tags) < 1:
-                return Response({"error": "Empty Tag List Not Allowed"},
-                        status=status.HTTP_400_BAD_REQUEST)
-            for tag in del_tags:
-                if tag not in all_tags:
-                    return Response({"error": "'{}' is not a valid tag in list".format(tag)},
-                        status=status.HTTP_400_BAD_REQUEST)
-                all_tags.remove(tag)
-            t = ", ".join(all_tags)
-            finding.tags = t
-            finding.save()
-            return Response({"success": "Tag(s) Removed"},
-                status=status.HTTP_200_OK)
-        else:
+        if not delete_tags.is_valid():
             return Response(delete_tags.errors,
                 status=status.HTTP_400_BAD_REQUEST)
+        all_tags = finding.tags
+        all_tags = serializers.TagSerializer({"tags": all_tags}).data['tags']
+        del_tags = delete_tags.validated_data['tags']
+        if len(del_tags) < 1:
+            return Response({"error": "Empty Tag List Not Allowed"},
+                    status=status.HTTP_400_BAD_REQUEST)
+        for tag in del_tags:
+            if tag not in all_tags:
+                return Response(
+                    {"error": f"'{tag}' is not a valid tag in list"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            all_tags.remove(tag)
+        t = ", ".join(all_tags)
+        finding.tags = t
+        finding.save()
+        return Response({"success": "Tag(s) Removed"},
+            status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'])
     def generate_report(self, request):
         findings = Finding.objects.all()
-        options = {}
         # prepare post data
         report_options = serializers.ReportGenerateOptionSerializer(data=request.data)
-        if report_options.is_valid():
-            options['include_finding_notes'] = report_options.validated_data['include_finding_notes']
-            options['include_finding_images'] = report_options.validated_data['include_finding_images']
-            options['include_executive_summary'] = report_options.validated_data['include_executive_summary']
-            options['include_table_of_contents'] = report_options.validated_data['include_table_of_contents']
-        else:
+        if not report_options.is_valid():
             return Response(report_options.errors,
                 status=status.HTTP_400_BAD_REQUEST)
+
+        options = {
+            'include_finding_notes': report_options.validated_data[
+                'include_finding_notes'
+            ],
+            'include_finding_images': report_options.validated_data[
+                'include_finding_images'
+            ],
+            'include_executive_summary': report_options.validated_data[
+                'include_executive_summary'
+            ],
+            'include_table_of_contents': report_options.validated_data[
+                'include_table_of_contents'
+            ],
+        }
 
         data = report_generate(request, findings, options)
         report = serializers.ReportGenerateSerializer(data)
@@ -298,27 +330,36 @@ class ProductViewSet(mixins.ListModelMixin,
     filter_fields = ('id', 'name', 'prod_type', 'created', 'authorized_users')
 
     def get_queryset(self):
-        if not self.request.user.is_staff:
-            return Product.objects.filter(
-                authorized_users__in=[self.request.user])
-        else:
-            return Product.objects.all()
+        return (
+            Product.objects.all()
+            if self.request.user.is_staff
+            else Product.objects.filter(authorized_users__in=[self.request.user])
+        )
 
     @detail_route(methods=['post'], permission_classes=[permissions.UserHasReportGeneratePermission])
     def generate_report(self, request, pk=None):
         product = get_object_or_404(Product.objects, id=pk)
 
-        options = {}
         # prepare post data
         report_options = serializers.ReportGenerateOptionSerializer(data=request.data)
-        if report_options.is_valid():
-            options['include_finding_notes'] = report_options.validated_data['include_finding_notes']
-            options['include_finding_images'] = report_options.validated_data['include_finding_images']
-            options['include_executive_summary'] = report_options.validated_data['include_executive_summary']
-            options['include_table_of_contents'] = report_options.validated_data['include_table_of_contents']
-        else:
+        if not report_options.is_valid():
             return Response(report_options.errors,
                 status=status.HTTP_400_BAD_REQUEST)
+
+        options = {
+            'include_finding_notes': report_options.validated_data[
+                'include_finding_notes'
+            ],
+            'include_finding_images': report_options.validated_data[
+                'include_finding_images'
+            ],
+            'include_executive_summary': report_options.validated_data[
+                'include_executive_summary'
+            ],
+            'include_table_of_contents': report_options.validated_data[
+                'include_table_of_contents'
+            ],
+        }
 
         data = report_generate(request, product, options)
         report = serializers.ReportGenerateSerializer(data)
@@ -336,27 +377,38 @@ class ProductTypeViewSet(mixins.ListModelMixin,
     filter_fields = ('id', 'name', 'critical_product', 'key_product', 'created', 'updated')
 
     def get_queryset(self):
-        if not self.request.user.is_staff:
-            return Product_Type.objects.filter(
-                prod_type__authorized_users__in=[self.request.user])
-        else:
-            return Product_Type.objects.all()
+        return (
+            Product_Type.objects.all()
+            if self.request.user.is_staff
+            else Product_Type.objects.filter(
+                prod_type__authorized_users__in=[self.request.user]
+            )
+        )
 
     @detail_route(methods=['post'], permission_classes=[permissions.UserHasReportGeneratePermission])
     def generate_report(self, request, pk=None):
         product_type = get_object_or_404(Product_Type.objects, id=pk)
 
-        options = {}
         # prepare post data
         report_options = serializers.ReportGenerateOptionSerializer(data=request.data)
-        if report_options.is_valid():
-            options['include_finding_notes'] = report_options.validated_data['include_finding_notes']
-            options['include_finding_images'] = report_options.validated_data['include_finding_images']
-            options['include_executive_summary'] = report_options.validated_data['include_executive_summary']
-            options['include_table_of_contents'] = report_options.validated_data['include_table_of_contents']
-        else:
+        if not report_options.is_valid():
             return Response(report_options.errors,
                 status=status.HTTP_400_BAD_REQUEST)
+
+        options = {
+            'include_finding_notes': report_options.validated_data[
+                'include_finding_notes'
+            ],
+            'include_finding_images': report_options.validated_data[
+                'include_finding_images'
+            ],
+            'include_executive_summary': report_options.validated_data[
+                'include_executive_summary'
+            ],
+            'include_table_of_contents': report_options.validated_data[
+                'include_table_of_contents'
+            ],
+        }
 
         data = report_generate(request, product_type, options)
         report = serializers.ReportGenerateSerializer(data)
@@ -383,11 +435,13 @@ class ScanSettingsViewSet(mixins.ListModelMixin,
             return serializers.ScanSettingsSerializer
 
     def get_queryset(self):
-        if not self.request.user.is_staff:
-            return ScanSettings.objects.filter(
-                product__authorized_users__in=[self.request.user])
-        else:
-            return ScanSettings.objects.all()
+        return (
+            ScanSettings.objects.all()
+            if self.request.user.is_staff
+            else ScanSettings.objects.filter(
+                product__authorized_users__in=[self.request.user]
+            )
+        )
 
 
 class ScansViewSet(mixins.ListModelMixin,
@@ -402,11 +456,13 @@ class ScansViewSet(mixins.ListModelMixin,
     filter_fields = ('id', 'date', 'scan_settings')
 
     def get_queryset(self):
-        if not self.request.user.is_staff:
-            return Scan.objects.filter(
-                scan_settings__product__authorized_users__in=[self.request.user])
-        else:
-            return Scan.objects.all()
+        return (
+            Scan.objects.all()
+            if self.request.user.is_staff
+            else Scan.objects.filter(
+                scan_settings__product__authorized_users__in=[self.request.user]
+            )
+        )
 
 
 class StubFindingsViewSet(mixins.ListModelMixin,
@@ -420,11 +476,11 @@ class StubFindingsViewSet(mixins.ListModelMixin,
     filter_fields = ('id', 'title', 'date', 'severity', 'description')
 
     def get_queryset(self):
-        if not self.request.user.is_staff:
-            return Finding.objects.filter(
-                reporter_id__in=[self.request.user])
-        else:
-            return Finding.objects.all()
+        return (
+            Finding.objects.all()
+            if self.request.user.is_staff
+            else Finding.objects.filter(reporter_id__in=[self.request.user])
+        )
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -457,11 +513,13 @@ class TestsViewSet(mixins.ListModelMixin,
                      'actual_time', 'engagement')
 
     def get_queryset(self):
-        if not self.request.user.is_staff:
-            return Test.objects.filter(
-                engagement__product__authorized_users__in=[self.request.user])
-        else:
-            return Test.objects.all()
+        return (
+            Test.objects.all()
+            if self.request.user.is_staff
+            else Test.objects.filter(
+                engagement__product__authorized_users__in=[self.request.user]
+            )
+        )
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -473,17 +531,26 @@ class TestsViewSet(mixins.ListModelMixin,
     def generate_report(self, request, pk=None):
         test = get_object_or_404(Test.objects, id=pk)
 
-        options = {}
         # prepare post data
         report_options = serializers.ReportGenerateOptionSerializer(data=request.data)
-        if report_options.is_valid():
-            options['include_finding_notes'] = report_options.validated_data['include_finding_notes']
-            options['include_finding_images'] = report_options.validated_data['include_finding_images']
-            options['include_executive_summary'] = report_options.validated_data['include_executive_summary']
-            options['include_table_of_contents'] = report_options.validated_data['include_table_of_contents']
-        else:
+        if not report_options.is_valid():
             return Response(report_options.errors,
                 status=status.HTTP_400_BAD_REQUEST)
+
+        options = {
+            'include_finding_notes': report_options.validated_data[
+                'include_finding_notes'
+            ],
+            'include_finding_images': report_options.validated_data[
+                'include_finding_images'
+            ],
+            'include_executive_summary': report_options.validated_data[
+                'include_executive_summary'
+            ],
+            'include_table_of_contents': report_options.validated_data[
+                'include_table_of_contents'
+            ],
+        }
 
         data = report_generate(request, test, options)
         report = serializers.ReportGenerateSerializer(data)

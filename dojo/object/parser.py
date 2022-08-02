@@ -76,9 +76,9 @@ def import_object_eng(request, engagement, json_data):
             object = Objects(product=product, path=file["path"], review_status=review_status)
             object.save()
             found_object = object
-            if file_type == "path":
-                for tag in found_object.tags.all():
-                    Tag.objects.update_tags(object, tag.name)
+        if file_type == "path":
+            for tag in found_object.tags.all():
+                Tag.objects.update_tags(object, tag.name)
 
         full_url = None
         file_type = None
@@ -111,8 +111,7 @@ def import_object_eng(request, engagement, json_data):
     # Create the test within the engagement
     if create_test_code_review:
         environment, env_created = Development_Environment.objects.get_or_create(name="Development")
-        tt = Test_Type.objects.get(pk=27)  # Manual code review
-        if tt:
+        if tt := Test_Type.objects.get(pk=27):
             test = Test(engagement=engagement, test_type=tt, target_start=timezone.now(),
                      target_end=timezone.now() + timezone.timedelta(days=1), environment=environment, percent_complete=0)
             test.save()

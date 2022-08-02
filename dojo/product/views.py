@@ -84,9 +84,10 @@ def view_product(request, pid):
     app_analysis = App_Analysis.objects.filter(product=prod).order_by('name')
     benchmark_type = Benchmark_Type.objects.filter(enabled=True).order_by('name')
     benchmarks = Benchmark_Product_Summary.objects.filter(product=prod, publish=True, benchmark_type__enabled=True).order_by('benchmark_type__name')
-    benchAndPercent = []
-    for i in range(0, len(benchmarks)):
-        benchAndPercent.append([benchmarks[i].benchmark_type, get_level(benchmarks[i])])
+    benchAndPercent = [
+        [benchmarks[i].benchmark_type, get_level(benchmarks[i])]
+        for i in range(len(benchmarks))
+    ]
 
     system_settings = System_Settings.objects.get()
 

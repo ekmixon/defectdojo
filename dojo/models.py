@@ -56,7 +56,7 @@ class Regulation(models.Model):
         ordering = ['name']
 
     def __str__(self):
-        return self.acronym + ' (' + self.jurisdiction + ')'
+        return f'{self.acronym} ({self.jurisdiction})'
 
 
 class System_Settings(models.Model):
@@ -240,9 +240,7 @@ class Dojo_User(User):
         """
         Returns the first_name plus the last_name, with a space in between.
         """
-        full_name = '%s %s (%s)' % (self.first_name,
-                                    self.last_name,
-                                    self.username)
+        full_name = f'{self.first_name} {self.last_name} ({self.username})'
         return full_name.strip()
 
     def __unicode__(self):
@@ -310,15 +308,12 @@ class Product_Type(models.Model):
         health = 100
         if c_findings.count() > 0:
             health = 40
-            health = health - ((c_findings.count() - 1) * 5)
+            health -= (c_findings.count() - 1) * 5
         if h_findings.count() > 0:
             if health == 100:
                 health = 60
-            health = health - ((h_findings.count() - 1) * 2)
-        if health < 5:
-            return 5
-        else:
-            return health
+            health -= (h_findings.count() - 1) * 2
+        return max(health, 5)
 
     def findings_count(self):
         return Finding.objects.filter(mitigated__isnull=True,
@@ -342,9 +337,12 @@ class Product_Type(models.Model):
         return self.name
 
     def get_breadcrumbs(self):
-        bc = [{'title': self.__unicode__(),
-               'url': reverse('edit_product_type', args=(self.id,))}]
-        return bc
+        return [
+            {
+                'title': self.__unicode__(),
+                'url': reverse('edit_product_type', args=(self.id,)),
+            }
+        ]
 
 
 class Product_Line(models.Model):
@@ -377,9 +375,7 @@ class Test_Type(models.Model):
         ordering = ('name',)
 
     def get_breadcrumbs(self):
-        bc = [{'title': self.__unicode__(),
-               'url': None}]
-        return bc
+        return [{'title': self.__unicode__(), 'url': None}]
 
 
 class DojoMeta(models.Model):
@@ -406,10 +402,10 @@ class DojoMeta(models.Model):
             raise ValidationError('Metadata entries may not have both a product and an endpoint')
 
     def __unicode__(self):
-        return "%s: %s" % (self.name, self.value)
+        return f"{self.name}: {self.value}"
 
     def __str__(self):
-        return "%s: %s" % (self.name, self.value)
+        return f"{self.name}: {self.value}"
 
     class Meta:
         unique_together = (('product', 'name'),
@@ -552,69 +548,66 @@ class Product(models.Model):
         hosts = []
         ids = []
         for e in endpoints:
-            if ":" in e.host:
-                host_no_port = e.host[:e.host.index(':')]
-            else:
-                host_no_port = e.host
-
+            host_no_port = e.host[:e.host.index(':')] if ":" in e.host else e.host
             if host_no_port in hosts:
                 continue
-            else:
-                hosts.append(host_no_port)
-                ids.append(e.id)
+            hosts.append(host_no_port)
+            ids.append(e.id)
 
         return len(hosts)
 
     def open_findings(self, start_date=None, end_date=None):
         if start_date is None or end_date is None:
             return {}
-        else:
-            critical = Finding.objects.filter(test__engagement__product=self,
-                                              mitigated__isnull=True,
-                                              verified=True,
-                                              false_p=False,
-                                              duplicate=False,
-                                              out_of_scope=False,
-                                              severity="Critical",
-                                              date__range=[start_date,
-                                                           end_date]).count()
-            high = Finding.objects.filter(test__engagement__product=self,
+        critical = Finding.objects.filter(test__engagement__product=self,
                                           mitigated__isnull=True,
                                           verified=True,
                                           false_p=False,
                                           duplicate=False,
                                           out_of_scope=False,
-                                          severity="High",
+                                          severity="Critical",
                                           date__range=[start_date,
                                                        end_date]).count()
-            medium = Finding.objects.filter(test__engagement__product=self,
-                                            mitigated__isnull=True,
-                                            verified=True,
-                                            false_p=False,
-                                            duplicate=False,
-                                            out_of_scope=False,
-                                            severity="Medium",
-                                            date__range=[start_date,
-                                                         end_date]).count()
-            low = Finding.objects.filter(test__engagement__product=self,
-                                         mitigated__isnull=True,
-                                         verified=True,
-                                         false_p=False,
-                                         duplicate=False,
-                                         out_of_scope=False,
-                                         severity="Low",
-                                         date__range=[start_date,
-                                                      end_date]).count()
-            return {'Critical': critical,
-                    'High': high,
-                    'Medium': medium,
-                    'Low': low,
-                    'Total': (critical + high + medium + low)}
+        high = Finding.objects.filter(test__engagement__product=self,
+                                      mitigated__isnull=True,
+                                      verified=True,
+                                      false_p=False,
+                                      duplicate=False,
+                                      out_of_scope=False,
+                                      severity="High",
+                                      date__range=[start_date,
+                                                   end_date]).count()
+        medium = Finding.objects.filter(test__engagement__product=self,
+                                        mitigated__isnull=True,
+                                        verified=True,
+                                        false_p=False,
+                                        duplicate=False,
+                                        out_of_scope=False,
+                                        severity="Medium",
+                                        date__range=[start_date,
+                                                     end_date]).count()
+        low = Finding.objects.filter(test__engagement__product=self,
+                                     mitigated__isnull=True,
+                                     verified=True,
+                                     false_p=False,
+                                     duplicate=False,
+                                     out_of_scope=False,
+                                     severity="Low",
+                                     date__range=[start_date,
+                                                  end_date]).count()
+        return {'Critical': critical,
+                'High': high,
+                'Medium': medium,
+                'Low': low,
+                'Total': (critical + high + medium + low)}
 
     def get_breadcrumbs(self):
-        bc = [{'title': self.__unicode__(),
-               'url': reverse('view_product', args=(self.id,))}]
-        return bc
+        return [
+            {
+                'title': self.__unicode__(),
+                'url': reverse('view_product', args=(self.id,)),
+            }
+        ]
 
     @property
     def get_product_type(self):
@@ -633,9 +626,7 @@ class ScanSettings(models.Model):
     protocol = models.CharField(max_length=10, default='TCP')
 
     def addresses_as_list(self):
-        if self.addresses:
-            return [a.strip() for a in self.addresses.split(',')]
-        return []
+        return [a.strip() for a in self.addresses.split(',')] if self.addresses else []
 
     def get_breadcrumbs(self):
         bc = self.product.get_breadcrumbs()
@@ -661,10 +652,10 @@ class Scan(models.Model):
                                    verbose_name="Current Baseline")
 
     def __unicode__(self):
-        return self.scan_settings.protocol + " Scan " + str(self.date)
+        return f"{self.scan_settings.protocol} Scan {str(self.date)}"
 
     def __str__(self):
-        return self.scan_settings.protocol + " Scan " + str(self.date)
+        return f"{self.scan_settings.protocol} Scan {str(self.date)}"
 
     def get_breadcrumbs(self):
         bc = self.scan_settings.get_breadcrumbs()
@@ -833,14 +824,16 @@ class Engagement(models.Model):
         ordering = ['-target_start']
 
     def __unicode__(self):
-        return "Engagement: %s (%s)" % (self.name if self.name else '',
-                                        self.target_start.strftime(
-                                            "%b %d, %Y"))
+        return "Engagement: %s (%s)" % (
+            self.name or '',
+            self.target_start.strftime("%b %d, %Y"),
+        )
 
     def __str__(self):
-        return "Engagement: %s (%s)" % (self.name if self.name else '',
-                                        self.target_start.strftime(
-                                            "%b %d, %Y"))
+        return "Engagement: %s (%s)" % (
+            self.name or '',
+            self.target_start.strftime("%b %d, %Y"),
+        )
 
     def get_breadcrumbs(self):
         bc = self.product.get_breadcrumbs()
@@ -899,10 +892,11 @@ class Endpoint(models.Model):
         query = self.query
         fragment = self.fragment
 
-        if port:
-            # If http or https on standard ports then don't tack on the port number
-            if (port != 443 and scheme == "https") or (port != 80 and scheme == "http"):
-                netloc += ':%s' % port
+        if port and (
+            (port != 443 and scheme == "https")
+            or (port != 80 and scheme == "http")
+        ):
+            netloc += ':%s' % port
 
         if netloc or (scheme and scheme in uses_netloc and url[:2] != '//'):
             if url and url[:1] != '/':
@@ -929,10 +923,11 @@ class Endpoint(models.Model):
         query = self.query
         fragment = self.fragment
 
-        if port:
-            # If http or https on standard ports then don't tack on the port number
-            if (port != 443 and scheme == "https") or (port != 80 and scheme == "http"):
-                netloc += ':%s' % port
+        if port and (
+            (port != 443 and scheme == "https")
+            or (port != 80 and scheme == "http")
+        ):
+            netloc += ':%s' % port
 
         if netloc or (scheme and scheme in uses_netloc and url[:2] != '//'):
             if url and url[:1] != '/':
@@ -961,8 +956,10 @@ class Endpoint(models.Model):
     def finding_count(self):
         host = self.host_no_port
 
-        endpoints = Endpoint.objects.filter(host__regex="^" + host + ":?",
-                                            product=self.product).distinct()
+        endpoints = Endpoint.objects.filter(
+            host__regex=f"^{host}:?", product=self.product
+        ).distinct()
+
 
         findings = Finding.objects.filter(endpoints__in=endpoints,
                                           active=True,
@@ -974,8 +971,10 @@ class Endpoint(models.Model):
     def active_findings(self):
         host = self.host_no_port
 
-        endpoints = Endpoint.objects.filter(host__regex="^" + host + ":?",
-                                            product=self.product).distinct()
+        endpoints = Endpoint.objects.filter(
+            host__regex=f"^{host}:?", product=self.product
+        ).distinct()
+
         return Finding.objects.filter(endpoints__in=endpoints,
                                       active=True,
                                       verified=True,
@@ -1005,10 +1004,7 @@ class Endpoint(models.Model):
 
     @property
     def host_no_port(self):
-        if ":" in self.host:
-            return self.host[:self.host.index(":")]
-        else:
-            return self.host
+        return self.host[:self.host.index(":")] if ":" in self.host else self.host
 
     @property
     def host_with_port(self):
@@ -1018,9 +1014,9 @@ class Endpoint(models.Model):
         if ":" in host:
             return host
         elif (port is None) and (scheme == "https"):
-            return host + ':443'
+            return f'{host}:443'
         elif (port is None) and (scheme == "http"):
-            return host + ':80'
+            return f'{host}:80'
 
 
 class NoteHistory(models.Model):
@@ -1092,12 +1088,12 @@ class Test(models.Model):
 
     def __unicode__(self):
         if self.title:
-            return "%s (%s)" % (self.title, self.test_type)
+            return f"{self.title} ({self.test_type})"
         return str(self.test_type)
 
     def __str__(self):
         if self.title:
-            return "%s (%s)" % (self.title, self.test_type)
+            return f"{self.title} ({self.test_type})"
         return str(self.test_type)
 
     def get_breadcrumbs(self):
@@ -1229,8 +1225,7 @@ class Finding(models.Model):
 
     def get_scanner_confidence_text(self):
         scanner_confidence_text = ""
-        scanner_confidence = self.scanner_confidence
-        if scanner_confidence:
+        if scanner_confidence := self.scanner_confidence:
             if scanner_confidence <= 2:
                 scanner_confidence_text = "Certain"
             elif scanner_confidence >= 3 and scanner_confidence <= 5:
@@ -1278,10 +1273,7 @@ class Finding(models.Model):
 
     def status(self):
         status = []
-        if self.active:
-            status += ['Active']
-        else:
-            status += ['Inactive']
+        status += ['Active'] if self.active else ['Inactive']
         if self.verified:
             status += ['Verified']
         if self.mitigated or self.is_Mitigated:
@@ -1307,21 +1299,18 @@ class Finding(models.Model):
         else:
             diff = get_current_date() - self.date
         days = diff.days
-        return days if days > 0 else 0
+        return max(days, 0)
 
     def sla(self):
         sla_calculation = None
         severity = self.severity
         from dojo.utils import get_system_setting
-        sla_age = get_system_setting('sla_' + self.severity.lower())
-        if sla_age and self.active:
-            sla_calculation = sla_age - self.age
-        elif sla_age and self.mitigated:
-            age = self.age
-            if age < sla_age:
-                sla_calculation = 0
-            else:
-                sla_calculation = sla_age - age
+        if sla_age := get_system_setting(f'sla_{self.severity.lower()}'):
+            if self.active:
+                sla_calculation = sla_age - self.age
+            elif self.mitigated:
+                age = self.age
+                sla_calculation = 0 if age < sla_age else sla_age - age
         return sla_calculation
 
     def jira(self):
@@ -1329,7 +1318,6 @@ class Finding(models.Model):
             jissue = JIRA_Issue.objects.get(finding=self)
         except:
             jissue = None
-            pass
         return jissue
 
     def jira_conf(self):
@@ -1338,21 +1326,24 @@ class Finding(models.Model):
             jconf = jpkey.conf
         except:
             jconf = None
-            pass
         return jconf
 
     def long_desc(self):
         long_desc = ''
-        long_desc += '*' + self.title + '*\n\n'
-        long_desc += '*Severity:* ' + str(self.severity) + '\n\n'
-        long_desc += '*Cve:* ' + str(self.cve) + '\n\n'
-        long_desc += '*Product/Engagement:* ' + self.test.engagement.product.name + ' / ' + self.test.engagement.name + '\n\n'
+        long_desc += f'*{self.title}' + '*\n\n'
+        long_desc += f'*Severity:* {str(self.severity)}' + '\n\n'
+        long_desc += f'*Cve:* {str(self.cve)}' + '\n\n'
+        long_desc += (
+            f'*Product/Engagement:* {self.test.engagement.product.name} / {self.test.engagement.name}'
+            + '\n\n'
+        )
+
         if self.test.engagement.branch_tag:
-            long_desc += '*Branch/Tag:* ' + self.test.engagement.branch_tag + '\n\n'
+            long_desc += f'*Branch/Tag:* {self.test.engagement.branch_tag}' + '\n\n'
         if self.test.engagement.build_id:
-            long_desc += '*BuildID:* ' + self.test.engagement.build_id + '\n\n'
+            long_desc += f'*BuildID:* {self.test.engagement.build_id}' + '\n\n'
         if self.test.engagement.commit_hash:
-            long_desc += '*Commit hash:* ' + self.test.engagement.commit_hash + '\n\n'
+            long_desc += f'*Commit hash:* {self.test.engagement.commit_hash}' + '\n\n'
         long_desc += '*Systems*: \n\n'
 
         for e in self.endpoints.all():
@@ -1360,31 +1351,27 @@ class Finding(models.Model):
         long_desc += '*Description*: \n' + self.description + '\n\n'
         long_desc += '*Mitigation*: \n' + self.mitigation + '\n\n'
         long_desc += '*Impact*: \n' + self.impact + '\n\n'
-        long_desc += '*References*:' + self.references
+        long_desc += f'*References*:{self.references}'
         return long_desc
 
     def save(self, dedupe_option=True, false_history=False, rules_option=True, *args, **kwargs):
-        # Make changes to the finding before it's saved to add a CWE template
-        new_finding = False
         if self.pk is None:
             false_history = True
             from dojo.utils import apply_cwe_to_template
             self = apply_cwe_to_template(self)
-            super(Finding, self).save(*args, **kwargs)
-        else:
-            super(Finding, self).save(*args, **kwargs)
-
-        if (self.file_path is not None) and (self.endpoints.count() == 0):
+        super(Finding, self).save(*args, **kwargs)
+        if self.file_path is not None:
+            if self.endpoints.count() == 0:
+                self.dynamic_finding = False
             self.static_finding = True
-            self.dynamic_finding = False
-        elif (self.file_path is not None):
-            self.static_finding = True
-
         # Compute hash code before dedupe
-        if (self.hash_code is None):
-            if((self.dynamic_finding and (self.endpoints.count() > 0)) or
-                    (self.static_finding and (self.file_path is not None))):
-                self.hash_code = self.compute_hash_code()
+        if (self.hash_code is None) and (
+            (
+                (self.dynamic_finding and (self.endpoints.count() > 0))
+                or (self.static_finding and (self.file_path is not None))
+            )
+        ):
+            self.hash_code = self.compute_hash_code()
         self.found_by.add(self.test.test_type)
 
         if rules_option:
@@ -1397,24 +1384,27 @@ class Finding(models.Model):
                     async_rules(self, *args, **kwargs)
             except UserContactInfo.DoesNotExist:
                 async_rules(self, *args, **kwargs)
-                pass
         from dojo.utils import calculate_grade
         calculate_grade(self.test.engagement.product)
         # Assign the numerical severity for correct sorting order
         self.numerical_severity = Finding.get_numerical_severity(self.severity)
         super(Finding, self).save()
         system_settings = System_Settings.objects.get()
-        if dedupe_option and self.hash_code is not None:
-            if system_settings.enable_deduplication:
-                from dojo.tasks import async_dedupe
-                try:
-                    if self.reporter.usercontactinfo.block_execution:
-                        dedupe_signal.send(sender=self.__class__, new_finding=self)
-                    else:
-                        async_dedupe.delay(self, *args, **kwargs)
-                except:
+        if (
+            dedupe_option
+            and self.hash_code is not None
+            and system_settings.enable_deduplication
+        ):
+            from dojo.tasks import async_dedupe
+            # Make changes to the finding before it's saved to add a CWE template
+            new_finding = False
+            try:
+                if self.reporter.usercontactinfo.block_execution:
+                    dedupe_signal.send(sender=self.__class__, new_finding=self)
+                else:
                     async_dedupe.delay(self, *args, **kwargs)
-                    pass
+            except:
+                async_dedupe.delay(self, *args, **kwargs)
         if system_settings.false_positive_history and false_history:
             from dojo.tasks import async_false_history
             from dojo.utils import sync_false_history
@@ -1425,7 +1415,6 @@ class Finding(models.Model):
                     async_false_history.delay(self, *args, **kwargs)
             except:
                 async_false_history.delay(self, *args, **kwargs)
-                pass
         # Title Casing
         from titlecase import titlecase
         self.title = titlecase(self.title)
@@ -1449,7 +1438,7 @@ class Finding(models.Model):
                 if not val and field == "title":
                     setattr(self, field, "No title given")
                 if not val and field in bigfields:
-                    setattr(self, field, "No %s given" % field)
+                    setattr(self, field, f"No {field} given")
 
     def severity_display(self):
         try:
@@ -1470,7 +1459,7 @@ class Finding(models.Model):
 
     def get_report_requests(self):
         if self.burprawrequestresponse_set.count() >= 3:
-            return BurpRawRequestResponse.objects.filter(finding=self)[0:3]
+            return BurpRawRequestResponse.objects.filter(finding=self)[:3]
         elif self.burprawrequestresponse_set.count() > 0:
             return BurpRawRequestResponse.objects.filter(finding=self)
 
@@ -1492,8 +1481,9 @@ class Finding(models.Model):
         return ", ".join([str(scanner) for scanner in scanners])
 
 
-Finding.endpoints.through.__unicode__ = lambda \
-    x: "Endpoint: " + x.endpoint.host
+Finding.endpoints.through.__unicode__ = (
+    lambda x: f"Endpoint: {x.endpoint.host}"
+)
 
 
 class Stub_Finding(models.Model):
@@ -1515,8 +1505,13 @@ class Stub_Finding(models.Model):
 
     def get_breadcrumbs(self):
         bc = self.test.get_breadcrumbs()
-        bc += [{'title': "Potential Finding: " + self.__unicode__(),
-                'url': reverse('view_potential_finding', args=(self.id,))}]
+        bc += [
+            {
+                'title': f"Potential Finding: {self.__unicode__()}",
+                'url': reverse('view_potential_finding', args=(self.id,)),
+            }
+        ]
+
         return bc
 
 
@@ -1549,9 +1544,12 @@ class Finding_Template(models.Model):
         return self.title
 
     def get_breadcrumbs(self):
-        bc = [{'title': self.__unicode__(),
-               'url': reverse('view_template', args=(self.id,))}]
-        return bc
+        return [
+            {
+                'title': self.__unicode__(),
+                'url': reverse('view_template', args=(self.id,)),
+            }
+        ]
 
 
 class Check_List(models.Model):
@@ -1766,10 +1764,10 @@ class JIRA_Conf(models.Model):
         return [m.strip() for m in (self.false_positive_mapping_resolution or '').split(',')]
 
     def __unicode__(self):
-        return self.url + " | " + self.username
+        return f"{self.url} | {self.username}"
 
     def __str__(self):
-        return self.url + " | " + self.username
+        return f"{self.url} | {self.username}"
 
     def get_priority(self, status):
         if status == 'Info':
@@ -1795,18 +1793,22 @@ class JIRA_Issue(models.Model):
     def __unicode__(self):
         text = ""
         if self.finding:
-            text = self.finding.test.engagement.product.name + " | Finding: " + self.finding.title + ", ID: " + str(self.finding.id)
+            text = f"{self.finding.test.engagement.product.name} | Finding: {self.finding.title}, ID: {str(self.finding.id)}"
+
         elif self.engagement:
-            text = self.engagement.product.name + " | Engagement: " + self.engagement.name + ", ID: " + str(self.engagement.id)
-        return text + " | Jira Key: " + str(self.jira_key)
+            text = f"{self.engagement.product.name} | Engagement: {self.engagement.name}, ID: {str(self.engagement.id)}"
+
+        return f"{text} | Jira Key: {str(self.jira_key)}"
 
     def __str__(self):
         text = ""
         if self.finding:
-            text = self.finding.test.engagement.product.name + " | Finding: " + self.finding.title + ", ID: " + str(self.finding.id)
+            text = f"{self.finding.test.engagement.product.name} | Finding: {self.finding.title}, ID: {str(self.finding.id)}"
+
         elif self.engagement:
-            text = self.engagement.product.name + " | Engagement: " + self.engagement.name + ", ID: " + str(self.engagement.id)
-        return text + " | Jira Key: " + str(self.jira_key)
+            text = f"{self.engagement.product.name} | Engagement: {self.engagement.name}, ID: {str(self.engagement.id)}"
+
+        return f"{text} | Jira Key: {str(self.jira_key)}"
 
 
 class JIRA_Clone(models.Model):
@@ -1833,10 +1835,10 @@ class JIRA_PKey(models.Model):
     push_notes = models.BooleanField(default=False, blank=True)
 
     def __unicode__(self):
-        return self.product.name + " | " + self.project_key
+        return f"{self.product.name} | {self.project_key}"
 
     def __str__(self):
-        return self.product.name + " | " + self.project_key
+        return f"{self.product.name} | {self.project_key}"
 
 
 NOTIFICATION_CHOICES = (
@@ -1927,10 +1929,10 @@ class Cred_User(models.Model):
         ordering = ['name']
 
     def __unicode__(self):
-        return self.name + " (" + self.role + ")"
+        return f"{self.name} ({self.role})"
 
     def __str__(self):
-        return self.name + " (" + self.role + ")"
+        return f"{self.name} ({self.role})"
 
 
 class Cred_Mapping(models.Model):
@@ -1949,10 +1951,10 @@ class Cred_Mapping(models.Model):
     url = models.URLField(max_length=2000, null=True, blank=True)
 
     def __unicode__(self):
-        return self.cred_id.name + " (" + self.cred_id.role + ")"
+        return f"{self.cred_id.name} ({self.cred_id.role})"
 
     def __str__(self):
-        return self.cred_id.name + " (" + self.cred_id.role + ")"
+        return f"{self.cred_id.name} ({self.cred_id.role})"
 
 
 class Language_Type(models.Model):
@@ -1998,10 +2000,10 @@ class App_Analysis(models.Model):
     created = models.DateTimeField(null=False, editable=False, default=now)
 
     def __unicode__(self):
-        return self.name + " | " + self.product.name
+        return f"{self.name} | {self.product.name}"
 
     def __str__(self):
-        return self.name + " | " + self.product.name
+        return f"{self.name} | {self.product.name}"
 
 
 class Objects_Review(models.Model):
@@ -2068,7 +2070,7 @@ class Objects_Engagement(models.Model):
         elif self.object_id.artifact:
             data = self.object_id.artifact
 
-        return data + " | " + self.engagement.name + " | " + str(self.engagement.id)
+        return f"{data} | {self.engagement.name} | {str(self.engagement.id)}"
 
     def __str__(self):
         data = ""
@@ -2079,7 +2081,7 @@ class Objects_Engagement(models.Model):
         elif self.object_id.artifact:
             data = self.object_id.artifact
 
-        return data + " | " + self.engagement.name + " | " + str(self.engagement.id)
+        return f"{data} | {self.engagement.name} | {str(self.engagement.id)}"
 
 
 class Testing_Guide_Category(models.Model):
@@ -2109,10 +2111,10 @@ class Testing_Guide(models.Model):
     updated = models.DateTimeField(editable=False, default=now)
 
     def __unicode__(self):
-        return self.testing_guide_category.name + ': ' + self.name
+        return f'{self.testing_guide_category.name}: {self.name}'
 
     def __str__(self):
-        return self.testing_guide_category.name + ': ' + self.name
+        return f'{self.testing_guide_category.name}: {self.name}'
 
 
 class Benchmark_Type(models.Model):
@@ -2129,10 +2131,10 @@ class Benchmark_Type(models.Model):
     enabled = models.BooleanField(default=True)
 
     def __unicode__(self):
-        return self.name + " " + self.version
+        return f"{self.name} {self.version}"
 
     def __str__(self):
-        return self.name + " " + self.version
+        return f"{self.name} {self.version}"
 
 
 class Benchmark_Category(models.Model):
@@ -2148,10 +2150,10 @@ class Benchmark_Category(models.Model):
         ordering = ('name',)
 
     def __unicode__(self):
-        return self.name + ': ' + self.type.name
+        return f'{self.name}: {self.type.name}'
 
     def __str__(self):
-        return self.name + ': ' + self.type.name
+        return f'{self.name}: {self.type.name}'
 
 
 class Benchmark_Requirement(models.Model):
@@ -2169,10 +2171,10 @@ class Benchmark_Requirement(models.Model):
     updated = models.DateTimeField(editable=False, default=now)
 
     def __unicode__(self):
-        return str(self.objective_number) + ': ' + self.category.name
+        return f'{str(self.objective_number)}: {self.category.name}'
 
     def __str__(self):
-        return str(self.objective_number) + ': ' + self.category.name
+        return f'{str(self.objective_number)}: {self.category.name}'
 
 
 class Benchmark_Product(models.Model):
@@ -2187,10 +2189,10 @@ class Benchmark_Product(models.Model):
     updated = models.DateTimeField(editable=False, default=now)
 
     def __unicode__(self):
-        return self.product.name + ': ' + self.control.objective_number + ': ' + self.control.category.name
+        return f'{self.product.name}: {self.control.objective_number}: {self.control.category.name}'
 
     def __str__(self):
-        return self.product.name + ': ' + self.control.objective_number + ': ' + self.control.category.name
+        return f'{self.product.name}: {self.control.objective_number}: {self.control.category.name}'
 
     class Meta:
         unique_together = [('product', 'control')]
@@ -2219,10 +2221,10 @@ class Benchmark_Product_Summary(models.Model):
     updated = models.DateTimeField(editable=False, default=now)
 
     def __unicode__(self):
-        return self.product.name + ': ' + self.benchmark_type.name
+        return f'{self.product.name}: {self.benchmark_type.name}'
 
     def __str__(self):
-        return self.product.name + ': ' + self.benchmark_type.name
+        return f'{self.product.name}: {self.benchmark_type.name}'
 
     class Meta:
         unique_together = [('product', 'benchmark_type')]
@@ -2237,9 +2239,7 @@ finding_opts = [f.name for f in Finding._meta.fields]
 # product_type_opts = [f.name for f in Product_Type._meta.fields]
 # single_options = product_opts + test_opts + test_type_opts + finding_opts + \
 #                  endpoint_opts + engagement_opts + product_type_opts
-all_options = []
-for x in finding_opts:
-    all_options.append((x, x))
+all_options = [(x, x) for x in finding_opts]
 operator_options = (('Matches', 'Matches'),
                     ('Contains', 'Contains'))
 application_options = (('Append', 'Append'),

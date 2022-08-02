@@ -31,16 +31,21 @@ class Command(BaseCommand):
             print("Must specify an argument: Weekly, Monthly, or Quarterly")
             sys.exit(0)
         if type not in ["Weekly", "Monthly", "Quarterly"]:
-            print(("Unexpected frequency: " + str(type) +
-                  "\nMust specify an argument: Weekly, Monthly, or Quarterly."))
+            print(
+                (
+                    f"Unexpected frequency: {str(type)}"
+                    + "\nMust specify an argument: Weekly, Monthly, or Quarterly."
+                )
+            )
+
             sys.exit(0)
 
         scSettings = ScanSettings.objects.filter(frequency=type)
 
-        scan_start_time = datetime.datetime.today() + datetime.timedelta(
-            hours=12)
-        scan_stop_time = datetime.datetime.today() + datetime.timedelta(
-            hours=24)
+        scan_start_time = datetime.datetime.now() + datetime.timedelta(hours=12)
+
+        scan_stop_time = datetime.datetime.now() + datetime.timedelta(hours=24)
+
 
         # Send one giant email to External Unit with a list  of all the
         # ipaddresses that will be scanned

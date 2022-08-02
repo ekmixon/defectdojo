@@ -66,12 +66,11 @@ def open_findings(request, pid=None, eid=None, view=None):
             findings = Finding.objects.filter(test__engagement=eid).order_by('numerical_severity')
         else:
             findings = Finding.objects.filter(test__engagement=eid, active=True, duplicate=False).order_by('numerical_severity')
+    elif view == "All":
+        filter_name = "All"
+        findings = Finding.objects.all().order_by('numerical_severity')
     else:
-        if view == "All":
-            filter_name = "All"
-            findings = Finding.objects.all().order_by('numerical_severity')
-        else:
-            findings = Finding.objects.filter(active=True, duplicate=False).order_by('numerical_severity')
+        findings = Finding.objects.filter(active=True, duplicate=False).order_by('numerical_severity')
 
     if request.user.is_staff:
         findings = OpenFingingSuperFilter(
@@ -111,8 +110,6 @@ def open_findings(request, pid=None, eid=None, view=None):
         found_by = findings.found_by.all().distinct()
     except:
         found_by = None
-        pass
-
     product_tab = None
     active_tab = None
     jira_config = None
@@ -235,18 +232,16 @@ def view_finding(request, fid):
         jissue = JIRA_Issue.objects.get(finding=finding)
     except:
         jissue = None
-        pass
     try:
         jpkey = JIRA_PKey.objects.get(product=finding.test.engagement.product)
         jconf = jpkey.conf
     except:
         jconf = None
-        pass
     dojo_user = get_object_or_404(Dojo_User, id=user.id)
-    if user.is_staff or user in finding.test.engagement.product.authorized_users.all(
+    if (
+        not user.is_staff
+        and user not in finding.test.engagement.product.authorized_users.all()
     ):
-        pass  # user is authorized for this product
-    else:
         raise PermissionDenied
 
     notes = finding.notes.all()
@@ -272,7 +267,7 @@ def view_finding(request, fid):
             form = NoteForm()
             url = request.build_absolute_uri(
                 reverse("view_finding", args=(finding.id, )))
-            title = "Finding: " + finding.title
+            title = f"Finding: {finding.title}"
             process_notifications(request, new_note, url, title)
             messages.add_message(
                 request,

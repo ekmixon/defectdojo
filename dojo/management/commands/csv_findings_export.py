@@ -32,22 +32,13 @@ class Command(BaseCommand):
         model = findings.model
         writer = csv.writer(open(file_path, 'w'))
 
-        headers = []
-        headers.append("product_name")
-        headers.append("id")
-        headers.append("title")
-        headers.append("cwe")
-        headers.append("date")
-        headers.append("url")
-        headers.append("severity")
-
+        headers = ["product_name", "id", "title", "cwe", "date", "url", "severity"]
         # for field in opts.fields:
         #    headers.append(field.name)
 
         writer.writerow(headers)
         for obj in findings:
-            row = []
-            row.append(obj.test.engagement.product)
+            row = [obj.test.engagement.product]
             for field in headers:
                 if field is not "product_name":
                     value = getattr(obj, field)

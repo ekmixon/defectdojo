@@ -1,10 +1,6 @@
 def social_uid(backend, details, response, *args, **kwargs):
-    uid = backend.get_user_id(details, response)
-    # Used for most backends
-    if uid:
+    if uid := backend.get_user_id(details, response):
         return {'uid': uid}
-    # Until OKTA PR in social-core is merged
-    # This modified way needs to work
     else:
         return {'uid': response.get('preferred_username')}
 

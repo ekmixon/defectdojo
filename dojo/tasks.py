@@ -40,22 +40,29 @@ def add_alerts(self, runinterval):
 
     upcoming_engagements = Engagement.objects.filter(target_start__gt=now + timedelta(days=3), target_start__lt=now + timedelta(days=3) + runinterval).order_by('target_start')
     for engagement in upcoming_engagements:
-        create_notification(event='upcoming_engagement',
-                            title='Upcoming engagement: %s' % engagement.name,
-                            engagement=engagement,
-                            recipients=[engagement.lead],
-                            url=reverse('view_engagement', args=(engagement.id,)))
+        create_notification(
+            event='upcoming_engagement',
+            title=f'Upcoming engagement: {engagement.name}',
+            engagement=engagement,
+            recipients=[engagement.lead],
+            url=reverse('view_engagement', args=(engagement.id,)),
+        )
+
 
     stale_engagements = Engagement.objects.filter(
         target_start__gt=now - runinterval,
         target_end__lt=now,
         status='In Progress').order_by('-target_end')
     for eng in stale_engagements:
-        create_notification(event='stale_engagement',
-                            title='Stale Engagement: %s' % eng.name,
-                            description='The engagement "%s" is stale. Target end was %s.' % (eng.name, eng.target_end.strftime("%b. %d, %Y")),
-                            url=reverse('view_engagement', args=(eng.id,)),
-                            recipients=[eng.lead])
+        create_notification(
+            event='stale_engagement',
+            title=f'Stale Engagement: {eng.name}',
+            description='The engagement "%s" is stale. Target end was %s.'
+            % (eng.name, eng.target_end.strftime("%b. %d, %Y")),
+            url=reverse('view_engagement', args=(eng.id,)),
+            recipients=[eng.lead],
+        )
+
 
     system_settings = System_Settings.objects.get()
     if system_settings.engagement_auto_close:
@@ -90,7 +97,7 @@ def async_pdf_report(self,
                      report_info=None,
                      context={},
                      uri=None):
-    xsl_style_sheet = settings.DOJO_ROOT + "/static/dojo/xsl/pdf_toc.xsl"
+    xsl_style_sheet = f"{settings.DOJO_ROOT}/static/dojo/xsl/pdf_toc.xsl"
     x = urlencode({'title': report_title,
                    'subtitle': report_subtitle,
                    'info': report_info})
@@ -104,10 +111,7 @@ def async_pdf_report(self,
         report.save()
         bytes = render_to_string(template, context)
         itoc = context['include_table_of_contents']
-        if itoc:
-            toc = {'xsl-style-sheet': xsl_style_sheet}
-        else:
-            toc = None
+        toc = {'xsl-style-sheet': xsl_style_sheet} if itoc else None
         pdf = pdfkit.from_string(bytes,
                                  False,
                                  configuration=config,
@@ -128,7 +132,12 @@ def async_pdf_report(self,
     except Exception as e:
         report.status = 'error'
         report.save()
-        log_generic_alert("PDF Report", "Report Creation Failure", "Make sure WKHTMLTOPDF is installed. " + str(e))
+        log_generic_alert(
+            "PDF Report",
+            "Report Creation Failure",
+            f"Make sure WKHTMLTOPDF is installed. {str(e)}",
+        )
+
     return True
 
 
@@ -213,7 +222,12 @@ def async_custom_pdf_report(self,
         report.save()
         # email_requester(report, uri, error=e)
         # raise e
-        log_generic_alert("PDF Report", "Report Creation Failure", "Make sure WKHTMLTOPDF is installed. " + str(e))
+        log_generic_alert(
+            "PDF Report",
+            "Report Creation Failure",
+            f"Make sure WKHTMLTOPDF is installed. {str(e)}",
+        )
+
     finally:
         if temp is not None:
             # deleting temp xsl file
