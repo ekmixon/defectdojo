@@ -26,7 +26,7 @@ EARLIEST_FINDING = None
 
 
 def now():
-    return local_tz.localize(datetime.today())
+    return local_tz.localize(datetime.now())
 
 
 def get_earliest_finding():
@@ -183,26 +183,25 @@ class MetricsDateRangeFilter(ChoiceFilter):
         self.start_date = local_tz.localize(
             datetime(now().year, now().month, 1, 0, 0, 0))
         self.end_date = now()
-        return qs.filter(**{
-            '%s__year' % name: self.start_date.year,
-            '%s__month' % name: self.start_date.month
-        })
+        return qs.filter(
+            **{
+                f'{name}__year': self.start_date.year,
+                f'{name}__month': self.start_date.month,
+            }
+        )
 
     def current_year(self, qs, name):
         self.start_date = local_tz.localize(
             datetime(now().year, 1, 1, 0, 0, 0))
         self.end_date = now()
-        return qs.filter(**{
-            '%s__year' % name: now().year,
-        })
+        return qs.filter(**{f'{name}__year': now().year})
 
     def past_x_days(self, qs, name, days):
         self.start_date = _truncate(now() - timedelta(days=days))
         self.end_date = _truncate(now() + timedelta(days=1))
-        return qs.filter(**{
-            '%s__gte' % name: self.start_date,
-            '%s__lt' % name: self.end_date,
-        })
+        return qs.filter(
+            **{f'{name}__gte': self.start_date, f'{name}__lt': self.end_date}
+        )
 
     def past_seven_days(self, qs, name):
         return self.past_x_days(qs, name, 7)
@@ -370,7 +369,7 @@ class OpenFindingFilter(DojoFilter):
             self.pid = kwargs.pop('pid')
         super(OpenFindingFilter, self).__init__(*args, **kwargs)
 
-        cwe = dict()
+        cwe = {}
         cwe = dict([finding.cwe, finding.cwe]
                    for finding in self.queryset.distinct()
                    if finding.cwe is not None and finding.cwe > 0 and finding.cwe not in cwe)
@@ -449,7 +448,7 @@ class ClosedFindingFilter(DojoFilter):
 
     def __init__(self, *args, **kwargs):
         super(ClosedFindingFilter, self).__init__(*args, **kwargs)
-        cwe = dict()
+        cwe = {}
         cwe = dict([finding.cwe, finding.cwe]
                    for finding in self.queryset.distinct()
                    if finding.cwe > 0 and finding.cwe not in cwe)
@@ -518,7 +517,7 @@ class AcceptedFindingFilter(DojoFilter):
 
     def __init__(self, *args, **kwargs):
         super(AcceptedFindingFilter, self).__init__(*args, **kwargs)
-        cwe = dict()
+        cwe = {}
         cwe = dict([finding.cwe, finding.cwe]
                    for finding in self.queryset.distinct()
                    if finding.cwe > 0 and finding.cwe not in cwe)
@@ -580,7 +579,7 @@ class ProductFindingFilter(DojoFilter):
 
     def __init__(self, *args, **kwargs):
         super(ProductFindingFilter, self).__init__(*args, **kwargs)
-        cwe = dict()
+        cwe = {}
         cwe = dict([finding.cwe, finding.cwe]
                    for finding in self.queryset.distinct()
                    if finding.cwe > 0 and finding.cwe not in cwe)
@@ -617,7 +616,7 @@ class TemplateFindingFilter(DojoFilter):
 
     def __init__(self, *args, **kwargs):
         super(TemplateFindingFilter, self).__init__(*args, **kwargs)
-        cwe = dict()
+        cwe = {}
         cwe = dict([finding.cwe, finding.cwe]
                    for finding in self.queryset.distinct()
                    if finding.cwe is not None and finding.cwe > 0 and finding.cwe not in cwe)
@@ -891,14 +890,14 @@ class ReportFilter(DojoFilter):
 
     def __init__(self, *args, **kwargs):
         super(ReportFilter, self).__init__(*args, **kwargs)
-        type = dict()
+        type = {}
         type = dict(
             [report.type, report.type] for report in self.queryset.distinct()
             if report.type is not None)
         type = collections.OrderedDict(sorted(type.items()))
         self.form.fields['type'].choices = list(type.items())
 
-        status = dict()
+        status = {}
         status = dict(
             [report.status, report.status] for report in
             self.queryset.distinct() if report.status is not None)

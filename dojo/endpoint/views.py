@@ -27,9 +27,7 @@ def vulnerable_endpoints(request):
                                         finding__duplicate=False, finding__out_of_scope=False, remediated=False).distinct()
 
     # are they authorized
-    if request.user.is_staff:
-        pass
-    else:
+    if not request.user.is_staff:
         products = Product.objects.filter(authorized_users__in=[request.user])
         if products.exists():
             endpoints = endpoints.filter(product__in=products.all())
@@ -67,9 +65,7 @@ def all_endpoints(request):
     endpoints = Endpoint.objects.all()
     show_uri = get_system_setting('display_endpoint_uri')
     # are they authorized
-    if request.user.is_staff:
-        pass
-    else:
+    if not request.user.is_staff:
         products = Product.objects.filter(authorized_users__in=[request.user])
         if products.exists():
             endpoints = endpoints.filter(product__in=products.all())
@@ -84,11 +80,10 @@ def all_endpoints(request):
 
     if show_uri:
         endpoints = EndpointFilter(request.GET, queryset=endpoints, user=request.user)
-        paged_endpoints = get_page_items(request, endpoints.qs, 25)
     else:
         ids = get_endpoint_ids(EndpointFilter(request.GET, queryset=endpoints, user=request.user).qs)
         endpoints = EndpointFilter(request.GET, queryset=endpoints.filter(id__in=ids), user=request.user)
-        paged_endpoints = get_page_items(request, endpoints.qs, 25)
+    paged_endpoints = get_page_items(request, endpoints.qs, 25)
     add_breadcrumb(title="All Endpoints", top_level=not len(request.GET), request=request)
 
     product_tab = None
@@ -111,28 +106,27 @@ def get_endpoint_ids(endpoints):
     hosts = []
     ids = []
     for e in endpoints:
-        if ":" in e.host:
-            host_no_port = e.host[:e.host.index(':')]
-        else:
-            host_no_port = e.host
-        key = host_no_port + '-' + str(e.product.id)
+        host_no_port = e.host[:e.host.index(':')] if ":" in e.host else e.host
+        key = f'{host_no_port}-{str(e.product.id)}'
         if key in hosts:
             continue
-        else:
-            hosts.append(key)
-            ids.append(e.id)
+        hosts.append(key)
+        ids.append(e.id)
     return ids
 
 
 def view_endpoint(request, eid):
     endpoint = get_object_or_404(Endpoint, id=eid)
     host = endpoint.host_no_port
-    endpoints = Endpoint.objects.filter(host__regex="^" + host + ":?",
-                                        product=endpoint.product).distinct()
+    endpoints = Endpoint.objects.filter(
+        host__regex=f"^{host}:?", product=endpoint.product
+    ).distinct()
 
-    if (request.user in endpoint.product.authorized_users.all()) or request.user.is_staff:
-        pass
-    else:
+
+    if (
+        request.user not in endpoint.product.authorized_users.all()
+        and not request.user.is_staff
+    ):
         raise PermissionDenied
 
     endpoint_metadata = dict(endpoint.endpoint_meta.values_list('name', 'value'))
@@ -161,11 +155,7 @@ def view_endpoint(request, eid):
 
     paged_findings = get_page_items(request, active_findings, 25)
 
-    vulnerable = False
-
-    if active_findings.count() != 0:
-        vulnerable = True
-
+    vulnerable = active_findings.count() != 0
     product_tab = Product_Tab(endpoint.product.id, "Endpoint", tab="endpoints")
     return render(request,
                   "dojo/view_endpoint.html",
@@ -216,22 +206,29 @@ def delete_endpoint(request, eid):
     product = endpoint.product
     form = DeleteEndpointForm(instance=endpoint)
 
-    if request.method == 'POST':
-        if 'id' in request.POST and str(endpoint.id) == request.POST['id']:
-            form = DeleteEndpointForm(request.POST, instance=endpoint)
-            if form.is_valid():
-                del endpoint.tags
-                endpoint.delete()
-                messages.add_message(request,
-                                     messages.SUCCESS,
-                                     'Endpoint and relationships removed.',
-                                     extra_tags='alert-success')
-                create_notification(event='other',
-                                    title='Deletion of %s' % endpoint,
-                                    description='The endpoint "%s" was deleted by %s' % (endpoint, request.user),
-                                    url=request.build_absolute_uri(reverse('endpoints')),
-                                    icon="exclamation-triangle")
-                return HttpResponseRedirect(reverse('view_product', args=(product.id,)))
+    if (
+        request.method == 'POST'
+        and 'id' in request.POST
+        and str(endpoint.id) == request.POST['id']
+    ):
+        form = DeleteEndpointForm(request.POST, instance=endpoint)
+        if form.is_valid():
+            del endpoint.tags
+            endpoint.delete()
+            messages.add_message(request,
+                                 messages.SUCCESS,
+                                 'Endpoint and relationships removed.',
+                                 extra_tags='alert-success')
+            create_notification(
+                event='other',
+                title=f'Deletion of {endpoint}',
+                description='The endpoint "%s" was deleted by %s'
+                % (endpoint, request.user),
+                url=request.build_absolute_uri(reverse('endpoints')),
+                icon="exclamation-triangle",
+            )
+
+            return HttpResponseRedirect(reverse('view_product', args=(product.id,)))
 
     collector = NestedObjects(using=DEFAULT_DB_ALIAS)
     collector.collect([endpoint])
@@ -267,16 +264,15 @@ def add_endpoint(request, pid):
                                  messages.SUCCESS,
                                  'Endpoint added successfully.',
                                  extra_tags='alert-success')
-            if '_popup' in request.GET:
-                resp = '<script type="text/javascript">opener.emptyEndpoints(window);</script>'
-                for endpoint in endpoints:
-                    resp += '<script type="text/javascript">opener.dismissAddAnotherPopupDojo(window, "%s", "%s");</script>' \
-                            % (escape(endpoint._get_pk_val()), escape(endpoint))
-                resp += '<script type="text/javascript">window.close();</script>'
-                return HttpResponse(resp)
-            else:
+            if '_popup' not in request.GET:
                 return HttpResponseRedirect(reverse('endpoints') + "?product=" + pid)
 
+            resp = '<script type="text/javascript">opener.emptyEndpoints(window);</script>'
+            for endpoint in endpoints:
+                resp += '<script type="text/javascript">opener.dismissAddAnotherPopupDojo(window, "%s", "%s");</script>' \
+                        % (escape(endpoint._get_pk_val()), escape(endpoint))
+            resp += '<script type="text/javascript">window.close();</script>'
+            return HttpResponse(resp)
     product_tab = None
     if '_popup' not in request.GET:
         product_tab = Product_Tab(product.id, "Add Endpoint", tab="endpoints")
@@ -302,7 +298,10 @@ def add_product_endpoint(request):
                                  messages.SUCCESS,
                                  'Endpoint added successfully.',
                                  extra_tags='alert-success')
-            return HttpResponseRedirect(reverse('endpoints') + "?product=%s" % form.product.id)
+            return HttpResponseRedirect(
+                reverse('endpoints') + f"?product={form.product.id}"
+            )
+
     add_breadcrumb(title="Add Endpoint", top_level=False, request=request)
     return render(request,
                   'dojo/add_endpoint.html',
@@ -349,8 +348,7 @@ def edit_meta_data(request, eid):
                 cfv_id = int(key.split('_')[1])
                 cfv = get_object_or_404(DojoMeta, id=cfv_id)
 
-                value = value.strip()
-                if value:
+                if value := value.strip():
                     cfv.value = value
                     cfv.save()
                 else:
@@ -379,21 +377,20 @@ def endpoint_bulk_update_all(request, pid=None):
             finds.delete()
             for prod in product_calc:
                 calculate_grade(prod)
+        elif endpoints_to_update:
+            endpoints_to_update = request.POST.getlist('endpoints_to_update')
+            finds = Endpoint.objects.filter(id__in=endpoints_to_update).order_by("endpoint_meta__product__id")
+            for endpoint in finds:
+                endpoint.remediated = not endpoint.remediated
+                endpoint.save()
+            messages.add_message(request,
+                                 messages.SUCCESS,
+                                 'Bulk edit of endpoints was successful.  Check to make sure it is what you intended.',
+                                 extra_tags='alert-success')
         else:
-            if endpoints_to_update:
-                endpoints_to_update = request.POST.getlist('endpoints_to_update')
-                finds = Endpoint.objects.filter(id__in=endpoints_to_update).order_by("endpoint_meta__product__id")
-                for endpoint in finds:
-                    endpoint.remediated = not endpoint.remediated
-                    endpoint.save()
-                messages.add_message(request,
-                                     messages.SUCCESS,
-                                     'Bulk edit of endpoints was successful.  Check to make sure it is what you intended.',
-                                     extra_tags='alert-success')
-            else:
-                # raise Exception('STOP')
-                messages.add_message(request,
-                                     messages.ERROR,
-                                     'Unable to process bulk update. Required fields were not selected.',
-                                     extra_tags='alert-danger')
+            # raise Exception('STOP')
+            messages.add_message(request,
+                                 messages.ERROR,
+                                 'Unable to process bulk update. Required fields were not selected.',
+                                 extra_tags='alert-danger')
     return HttpResponseRedirect(reverse('endpoints', args=()))

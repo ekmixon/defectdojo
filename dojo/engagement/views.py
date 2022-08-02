@@ -136,9 +136,7 @@ def new_engagement(request):
 @user_passes_test(lambda u: u.is_staff)
 def edit_engagement(request, eid):
     eng = Engagement.objects.get(pk=eid)
-    ci_cd_form = False
-    if eng.engagement_type == "CI/CD":
-        ci_cd_form = True
+    ci_cd_form = eng.engagement_type == "CI/CD"
     jform = None
     if request.method == 'POST':
         form = EngForm(request.POST, instance=eng, cicd=ci_cd_form, product=eng.product.id)
@@ -157,7 +155,7 @@ def edit_engagement(request, eid):
                     add_epic_task.delay(eng,
                                         jform.cleaned_data.get('push_to_jira'))
             temp_form = form.save(commit=False)
-            if (temp_form.status == "Cancelled" or temp_form.status == "Completed"):
+            if temp_form.status in ["Cancelled", "Completed"]:
                 temp_form.active = False
             elif(temp_form.active is False):
                 temp_form.active = True
@@ -183,8 +181,6 @@ def edit_engagement(request, eid):
             enabled = True
         except:
             enabled = False
-            pass
-
         if get_system_setting('enable_jira') and JIRA_PKey.objects.filter(
                 product=eng.product).count() != 0:
             jform = JIRAFindingForm(prefix='jiraform', enabled=enabled)
@@ -193,10 +189,11 @@ def edit_engagement(request, eid):
 
     form.initial['tags'] = [tag.name for tag in eng.tags]
 
-    title = ""
-    if eng.engagement_type == "CI/CD":
-        title = " CI/CD"
-    product_tab = Product_Tab(eng.product.id, title="Edit" + title + " Engagement", tab="engagements")
+    title = " CI/CD" if eng.engagement_type == "CI/CD" else ""
+    product_tab = Product_Tab(
+        eng.product.id, title=f"Edit{title} Engagement", tab="engagements"
+    )
+
     product_tab.setEngagement(eng)
     return render(request, 'dojo/new_eng.html', {
         'product_tab': product_tab,
@@ -213,28 +210,37 @@ def delete_engagement(request, eid):
     product = engagement.product
     form = DeleteEngagementForm(instance=engagement)
 
-    if request.method == 'POST':
-        if 'id' in request.POST and str(engagement.id) == request.POST['id']:
-            form = DeleteEngagementForm(request.POST, instance=engagement)
-            if form.is_valid():
-                del engagement.tags
-                engagement.delete()
-                messages.add_message(
-                    request,
-                    messages.SUCCESS,
-                    'Engagement and relationships removed.',
-                    extra_tags='alert-success')
-                create_notification(event='other',
-                                    title='Deletion of %s' % engagement.name,
-                                    description='The engagement "%s" was deleted by %s' % (engagement.name, request.user),
-                                    url=request.build_absolute_uri(reverse('view_engagements', args=(product.id, ))),
-                                    recipients=[engagement.lead],
-                                    icon="exclamation-triangle")
+    if (
+        request.method == 'POST'
+        and 'id' in request.POST
+        and str(engagement.id) == request.POST['id']
+    ):
+        form = DeleteEngagementForm(request.POST, instance=engagement)
+        if form.is_valid():
+            del engagement.tags
+            engagement.delete()
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                'Engagement and relationships removed.',
+                extra_tags='alert-success')
+            create_notification(
+                event='other',
+                title=f'Deletion of {engagement.name}',
+                description='The engagement "%s" was deleted by %s'
+                % (engagement.name, request.user),
+                url=request.build_absolute_uri(
+                    reverse('view_engagements', args=(product.id,))
+                ),
+                recipients=[engagement.lead],
+                icon="exclamation-triangle",
+            )
 
-                if engagement.engagement_type == 'CI/CD':
-                    return HttpResponseRedirect(reverse("view_engagements_cicd", args=(product.id, )))
-                else:
-                    return HttpResponseRedirect(reverse("view_engagements", args=(product.id, )))
+
+            if engagement.engagement_type == 'CI/CD':
+                return HttpResponseRedirect(reverse("view_engagements_cicd", args=(product.id, )))
+            else:
+                return HttpResponseRedirect(reverse("view_engagements", args=(product.id, )))
 
     collector = NestedObjects(using=DEFAULT_DB_ALIAS)
     collector.collect([engagement])
@@ -270,12 +276,10 @@ def view_engagement(request, eid):
         jissue = JIRA_Issue.objects.get(engagement=eng)
     except:
         jissue = None
-        pass
     try:
         jconf = JIRA_PKey.objects.get(product=eng.product).conf
     except:
         jconf = None
-        pass
     exclude_findings = [
         finding.id for ra in eng.risk_acceptance.all()
         for finding in ra.accepted_findings.all()
@@ -287,7 +291,6 @@ def view_engagement(request, eid):
         check = Check_List.objects.get(engagement=eng)
     except:
         check = None
-        pass
     form = DoneForm()
     if request.method == 'POST' and request.user.is_staff:
         eng.progress = 'check_list'
@@ -299,23 +302,17 @@ def view_engagement(request, eid):
         engagement=eng.id).select_related('cred_id').order_by('cred_id')
 
     add_breadcrumb(parent=eng, top_level=False, request=request)
-    if hasattr(settings, 'ENABLE_DEDUPLICATION'):
-        if settings.ENABLE_DEDUPLICATION:
-            enabled = True
-            findings = Finding.objects.filter(
-                test__engagement=eng, duplicate=False)
-        else:
-            enabled = False
-            findings = None
+    if (
+        hasattr(settings, 'ENABLE_DEDUPLICATION')
+        and settings.ENABLE_DEDUPLICATION
+    ):
+        enabled = True
+        findings = Finding.objects.filter(
+            test__engagement=eng, duplicate=False)
     else:
         enabled = False
         findings = None
-
-    if findings is not None:
-        fpage = get_page_items(request, findings, 15)
-    else:
-        fpage = None
-
+    fpage = get_page_items(request, findings, 15) if findings is not None else None
     # ----------
 
     try:
@@ -334,10 +331,11 @@ def view_engagement(request, eid):
         for finding in ra.accepted_findings.all()
     ]
 
-    title = ""
-    if eng.engagement_type == "CI/CD":
-        title = " CI/CD"
-    product_tab = Product_Tab(prod.id, title="View" + title + " Engagement", tab="engagements")
+    title = " CI/CD" if eng.engagement_type == "CI/CD" else ""
+    product_tab = Product_Tab(
+        prod.id, title=f"View{title} Engagement", tab="engagements"
+    )
+
     product_tab.setEngagement(eng)
     return render(
         request, 'dojo/view_eng.html', {
@@ -383,8 +381,6 @@ def add_tests(request, eid):
                 new_test.lead = User.objects.get(id=form['lead'].value())
             except:
                 new_test.lead = None
-                pass
-
             # Set status to in progress if a test is added
             if eng.status != "In Progress" and eng.active is True:
                 eng.status = "In Progress"
@@ -396,17 +392,16 @@ def add_tests(request, eid):
             new_test.tags = t
 
             # Save the credential to the test
-            if cred_form.is_valid():
-                if cred_form.cleaned_data['cred_user']:
-                    # Select the credential mapping object from the selected list and only allow if the credential is associated with the product
-                    cred_user = Cred_Mapping.objects.filter(
-                        pk=cred_form.cleaned_data['cred_user'].id,
-                        engagement=eid).first()
+            if cred_form.is_valid() and cred_form.cleaned_data['cred_user']:
+                # Select the credential mapping object from the selected list and only allow if the credential is associated with the product
+                cred_user = Cred_Mapping.objects.filter(
+                    pk=cred_form.cleaned_data['cred_user'].id,
+                    engagement=eid).first()
 
-                    new_f = cred_form.save(commit=False)
-                    new_f.test = new_test
-                    new_f.cred_id = cred_user.cred_id
-                    new_f.save()
+                new_f = cred_form.save(commit=False)
+                new_f.test = new_test
+                new_f.cred_id = cred_user.cred_id
+                new_f.save()
 
             messages.add_message(
                 request,
@@ -416,10 +411,12 @@ def add_tests(request, eid):
 
             create_notification(
                 event='test_added',
-                title=new_test.test_type.name + " for " + eng.product.name,
+                title=f"{new_test.test_type.name} for {eng.product.name}",
                 test=new_test,
                 engagement=eng,
-                url=reverse('view_engagement', args=(eng.id, )))
+                url=reverse('view_engagement', args=(eng.id,)),
+            )
+
 
             if '_Add Another Test' in request.POST:
                 return HttpResponseRedirect(

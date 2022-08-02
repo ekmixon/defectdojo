@@ -54,10 +54,9 @@ class Command(BaseCommand):
                     ct = ContentType.objects.get_for_id(
                         ContentType.objects.get_for_model(finding).id)
                     obj = ct.get_object_for_this_type(pk=finding.id)
-                    log_entries = LogEntry.objects.filter(content_type=ct,
-                                                          object_pk=obj.id).order_by(
-                        '-timestamp')
-                    if log_entries:
+                    if log_entries := LogEntry.objects.filter(
+                        content_type=ct, object_pk=obj.id
+                    ).order_by('-timestamp'):
                         last_action_date = log_entries[0].timestamp.date()
                 except KeyError:
                     pass
@@ -71,9 +70,8 @@ class Command(BaseCommand):
                 finding.last_reviewed_by = finding.reporter
                 save = True
 
-            if finding.mitigated:
-                if not finding.mitigated_by:
-                    finding.mitigated_by = finding.last_reviewed_by if finding.last_reviewed_by else finding.reporter
-                    save = True
+            if finding.mitigated and not finding.mitigated_by:
+                finding.mitigated_by = finding.last_reviewed_by or finding.reporter
+                save = True
             if save:
                 finding.save()

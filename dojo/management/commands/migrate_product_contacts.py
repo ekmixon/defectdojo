@@ -35,7 +35,7 @@ class Command(BaseCommand):
                 lname = prod.prod_manager.split()[1]
                 user, created = Dojo_User.objects.get_or_create(first_name=fname, last_name=lname)
                 if created:
-                    user.username = fname + '.' + lname
+                    user.username = f'{fname}.{lname}'
                     user.set_unusable_password()
                     user.is_staff = False
                     user.is_superuser = False
@@ -52,7 +52,7 @@ class Command(BaseCommand):
                 lname = prod.manager.split()[1]
                 user, created = Dojo_User.objects.get_or_create(first_name=fname, last_name=lname)
                 if created:
-                    user.username = fname + '.' + lname
+                    user.username = f'{fname}.{lname}'
                     user.set_unusable_password()
                     user.is_staff = False
                     user.is_superuser = False
@@ -69,7 +69,7 @@ class Command(BaseCommand):
                 lname = prod.tech_contact.split()[1]
                 user, created = Dojo_User.objects.get_or_create(first_name=fname, last_name=lname)
                 if created:
-                    user.username = fname + '.' + lname
+                    user.username = f'{fname}.{lname}'
                     user.set_unusable_password()
                     user.is_staff = False
                     user.is_superuser = False

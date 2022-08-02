@@ -86,31 +86,23 @@ class MonthYearWidget(Widget):
         except AttributeError:
             year_val = month_val = None
             if isinstance(value, str):
-                match = RE_DATE.match(value)
-                if match:
+                if match := RE_DATE.match(value):
                     year_val,
                     month_val,
                     day_val = [int(v) for v in match.groups()]
 
-        output = []
-
-        if 'id' in self.attrs:
-            id_ = self.attrs['id']
-        else:
-            id_ = 'id_%s' % name
-
+        id_ = self.attrs['id'] if 'id' in self.attrs else f'id_{name}'
         month_choices = list(MONTHS.items())
-        if not (self.required and value):
+        if not self.required or not value:
             month_choices.append(self.none_value)
         month_choices.sort()
         local_attrs = self.build_attrs({'id': self.month_field % id_})
         s = Select(choices=month_choices)
         select_html = s.render(self.month_field % name, month_val, local_attrs)
 
-        output.append(select_html)
-
+        output = [select_html]
         year_choices = [(i, i) for i in self.years]
-        if not (self.required and value):
+        if not self.required or not value:
             year_choices.insert(0, self.none_value)
         local_attrs['id'] = self.year_field % id_
         s = Select(choices=year_choices)
@@ -120,7 +112,7 @@ class MonthYearWidget(Widget):
         return mark_safe('\n'.join(output))
 
     def id_for_label(self, id_):
-        return '%s_month' % id_
+        return f'{id_}_month'
 
     id_for_label = classmethod(id_for_label)
 
@@ -129,9 +121,7 @@ class MonthYearWidget(Widget):
         m = data.get(self.month_field % name)
         if y == m == "0":
             return None
-        if y and m:
-            return '%s-%s-%s' % (y, m, 1)
-        return data.get(name, None)
+        return f'{y}-{m}-1' if y and m else data.get(name, None)
 
 
 class Product_TypeForm(forms.ModelForm):
@@ -352,13 +342,12 @@ class ImportScanForm(forms.Form):
     # date can only be today or in the past, not the future
     def clean_scan_date(self):
         date = self.cleaned_data['scan_date']
-        if date.date() > datetime.today().date():
+        if date.date() > datetime.now().date():
             raise forms.ValidationError("The date cannot be in the future!")
         return date
 
     def get_scan_type(self):
-        TGT_scan = self.cleaned_data['scan_type']
-        return TGT_scan
+        return self.cleaned_data['scan_type']
 
 
 class ReImportScanForm(forms.Form):
@@ -391,7 +380,7 @@ class ReImportScanForm(forms.Form):
     # date can only be today or in the past, not the future
     def clean_scan_date(self):
         date = self.cleaned_data['scan_date']
-        if date.date() > datetime.today().date():
+        if date.date() > datetime.now().date():
             raise forms.ValidationError("The date cannot be in the future!")
         return date
 
@@ -603,14 +592,8 @@ class EngForm(forms.ModelForm):
     test_strategy = forms.URLField(required=False, label="Test Strategy URL")
 
     def __init__(self, *args, **kwargs):
-        cicd = False
-        product = None
-        if 'cicd' in kwargs:
-            cicd = kwargs.pop('cicd')
-
-        if 'product' in kwargs:
-            product = kwargs.pop('product')
-
+        cicd = kwargs.pop('cicd') if 'cicd' in kwargs else False
+        product = kwargs.pop('product') if 'product' in kwargs else None
         tags = Tag.objects.usage_for_model(Engagement)
         t = [(tag.name, tag.name) for tag in tags]
         super(EngForm, self).__init__(*args, **kwargs)
@@ -883,11 +866,8 @@ class FindingForm(forms.ModelForm):
                                      help_text="A new finding template will be created from this finding.")
 
     def __init__(self, *args, **kwargs):
-        template = kwargs.pop('template')
-        # Get tags from a template
-        if template:
+        if template := kwargs.pop('template'):
             tags = Tag.objects.usage_for_model(Finding_Template)
-        # Get tags from a finding
         else:
             tags = Tag.objects.usage_for_model(Finding)
 
@@ -923,12 +903,12 @@ class StubFindingForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super(StubFindingForm, self).clean()
-        if 'title' in cleaned_data:
-            if len(cleaned_data['title']) <= 0:
-                raise forms.ValidationError("The title is required.")
-        else:
+        if (
+            'title' in cleaned_data
+            and len(cleaned_data['title']) <= 0
+            or 'title' not in cleaned_data
+        ):
             raise forms.ValidationError("The title is required.")
-
         return cleaned_data
 
 
@@ -960,12 +940,12 @@ class ApplyFindingTemplateForm(forms.Form):
     def clean(self):
         cleaned_data = super(ApplyFindingTemplateForm, self).clean()
 
-        if 'title' in cleaned_data:
-            if len(cleaned_data['title']) <= 0:
-                raise forms.ValidationError("The title is required.")
-        else:
+        if (
+            'title' in cleaned_data
+            and len(cleaned_data['title']) <= 0
+            or 'title' not in cleaned_data
+        ):
             raise forms.ValidationError("The title is required.")
-
         return cleaned_data
 
     class Meta:
@@ -1136,11 +1116,9 @@ class AddEndpointForm(forms.Form):
                                      "Choose from the list or add new tags.  Press TAB key to add.")
 
     def __init__(self, *args, **kwargs):
-        product = None
         tags = Tag.objects.usage_for_model(Endpoint)
         t = [(tag.name, tag.name) for tag in tags]
-        if 'product' in kwargs:
-            product = kwargs.pop('product')
+        product = kwargs.pop('product') if 'product' in kwargs else None
         super(AddEndpointForm, self).__init__(*args, **kwargs)
         if product is None:
             self.fields['product'] = forms.ModelChoiceField(queryset=Product.objects.all())
@@ -1169,16 +1147,17 @@ class AddEndpointForm(forms.Form):
         port_re = "(:[0-9]{1,5}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])"
         cleaned_data = super(AddEndpointForm, self).clean()
 
-        if 'endpoint' in cleaned_data and 'product' in cleaned_data:
-            endpoint = cleaned_data['endpoint']
-            product = cleaned_data['product']
-            if isinstance(product, Product):
-                self.product = product
-            else:
-                self.product = Product.objects.get(id=int(product))
-        else:
+        if 'endpoint' not in cleaned_data or 'product' not in cleaned_data:
             raise forms.ValidationError('Please enter a valid URL or IP address.',
                                         code='invalid')
+
+        endpoint = cleaned_data['endpoint']
+        product = cleaned_data['product']
+        self.product = (
+            product
+            if isinstance(product, Product)
+            else Product.objects.get(id=int(product))
+        )
 
         endpoints = endpoint.split()
         count = 0
@@ -1214,7 +1193,7 @@ class AddEndpointForm(forms.Form):
                         protocol, host, path, query, fragment = (None, host, None, None, None)
                         if "/" in host or "?" in host or "#" in host:
                             # add a fake protocol just to join, wont use in update to database
-                            host_with_protocol = "http://" + host
+                            host_with_protocol = f"http://{host}"
                             p, host, path, query, fragment = urlsplit(host_with_protocol)
                         self.endpoints_to_process.append([protocol, host, path, query, fragment])
                     except forms.ValidationError:
@@ -1686,9 +1665,7 @@ class ObjectSettingsForm(forms.ModelForm):
         self.fields['tags'].widget.choices = t
 
     def clean(self):
-        form_data = self.cleaned_data
-
-        return form_data
+        return self.cleaned_data
 
 
 class CredMappingForm(forms.ModelForm):

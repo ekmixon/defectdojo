@@ -40,10 +40,8 @@ def webhook(request):
             if jissue.finding is not None:
                 finding = jissue.finding
                 jira_conf = finding.jira_conf()
-                resolved = True
                 resolution = parsed['issue']['fields']['resolution']
-                if resolution is None:
-                    resolved = False
+                resolved = resolution is not None
                 if finding.active == resolved:
                     if finding.active:
                         if jira_conf and resolution['name'] in jira_conf.accepted_resolutions:
@@ -93,7 +91,7 @@ def webhook(request):
             jissue = JIRA_Issue.objects.get(jira_id=jid)
             finding = jissue.finding
             new_note = Notes()
-            new_note.entry = '(%s): %s' % (commentor, comment_text)
+            new_note.entry = f'({commentor}): {comment_text}'
             new_note.author, created = User.objects.get_or_create(username='JIRA')
             new_note.save()
             finding.notes.add(new_note)
@@ -125,7 +123,8 @@ def express_new_jira(request):
                 # authentication successful
                 # Get the open and close keys
                 issue_id = jform.cleaned_data.get('issue_key')
-                key_url = jira_server + '/rest/api/latest/issue/' + issue_id + '/transitions?expand=transitions.fields'
+                key_url = f'{jira_server}/rest/api/latest/issue/{issue_id}/transitions?expand=transitions.fields'
+
                 data = json.loads(requests.get(key_url, auth=(jira_username, jira_password)).text)
                 for node in data['transitions']:
                     if node['to']['name'] == 'To Do':
@@ -133,7 +132,7 @@ def express_new_jira(request):
                     if node['to']['name'] == 'Done':
                         close_key = int(node['to']['id'])
                 # Get the epic id name
-                key_url = jira_server + '/rest/api/2/field'
+                key_url = f'{jira_server}/rest/api/2/field'
                 data = json.loads(requests.get(key_url, auth=(jira_username, jira_password)).text)
                 for node in data:
                     if 'Epic Name' in node['clauseNames']:
@@ -159,12 +158,17 @@ def express_new_jira(request):
                                      messages.SUCCESS,
                                      'JIRA Configuration Successfully Created.',
                                      extra_tags='alert-success')
-                create_notification(event='other',
-                                    title='New addition of JIRA URL %s' % jform.cleaned_data.get('url').rstrip('/'),
-                                    description='JIRA url "%s" was added by %s' %
-                                                (jform.cleaned_data.get('url').rstrip('/'), request.user),
-                                    url=request.build_absolute_uri(reverse('jira')),
-                                    )
+                create_notification(
+                    event='other',
+                    title=f"New addition of JIRA URL {jform.cleaned_data.get('url').rstrip('/')}",
+                    description='JIRA url "%s" was added by %s'
+                    % (
+                        jform.cleaned_data.get('url').rstrip('/'),
+                        request.user,
+                    ),
+                    url=request.build_absolute_uri(reverse('jira')),
+                )
+
                 return HttpResponseRedirect(reverse('jira', ))
             except:
                 messages.add_message(request,
@@ -204,12 +208,17 @@ def new_jira(request):
                                      messages.SUCCESS,
                                      'JIRA Configuration Successfully Created.',
                                      extra_tags='alert-success')
-                create_notification(event='other',
-                                    title='New addition of JIRA URL %s' % jform.cleaned_data.get('url').rstrip('/'),
-                                    description='JIRA url "%s" was added by %s' %
-                                                (jform.cleaned_data.get('url').rstrip('/'), request.user),
-                                    url=request.build_absolute_uri(reverse('jira')),
-                                    )
+                create_notification(
+                    event='other',
+                    title=f"New addition of JIRA URL {jform.cleaned_data.get('url').rstrip('/')}",
+                    description='JIRA url "%s" was added by %s'
+                    % (
+                        jform.cleaned_data.get('url').rstrip('/'),
+                        request.user,
+                    ),
+                    url=request.build_absolute_uri(reverse('jira')),
+                )
+
                 return HttpResponseRedirect(reverse('jira', ))
             except Exception:
                 messages.add_message(request,
@@ -245,12 +254,17 @@ def edit_jira(request, jid):
                                      messages.SUCCESS,
                                      'JIRA Configuration Successfully Created.',
                                      extra_tags='alert-success')
-                create_notification(event='other',
-                                    title='Edit of JIRA URL %s' % jform.cleaned_data.get('url').rstrip('/'),
-                                    description='JIRA url "%s" was edited by %s' %
-                                                (jform.cleaned_data.get('url').rstrip('/'), request.user),
-                                    url=request.build_absolute_uri(reverse('jira')),
-                                    )
+                create_notification(
+                    event='other',
+                    title=f"Edit of JIRA URL {jform.cleaned_data.get('url').rstrip('/')}",
+                    description='JIRA url "%s" was edited by %s'
+                    % (
+                        jform.cleaned_data.get('url').rstrip('/'),
+                        request.user,
+                    ),
+                    url=request.build_absolute_uri(reverse('jira')),
+                )
+
                 return HttpResponseRedirect(reverse('jira', ))
             except Exception:
                 messages.add_message(request,
@@ -296,21 +310,27 @@ def delete_jira(request, tid):
     # TODO Make Form
     form = DeleteJIRAConfForm(instance=jira_instance)
 
-    if request.method == 'POST':
-        if 'id' in request.POST and str(jira_instance.id) == request.POST['id']:
-            form = DeleteJIRAConfForm(request.POST, instance=jira_instance)
-            if form.is_valid():
-                jira_instance.delete()
-                messages.add_message(request,
-                                     messages.SUCCESS,
-                                     'JIRA Conf and relationships removed.',
-                                     extra_tags='alert-success')
-                create_notification(event='other',
-                                    title='Deletion of JIRA URL %s' % jira_instance.url,
-                                    description='JIRA url "%s" was deleted by %s' % (jira_instance.url, request.user),
-                                    url=request.build_absolute_uri(reverse('jira')),
-                                    )
-                return HttpResponseRedirect(reverse('jira'))
+    if (
+        request.method == 'POST'
+        and 'id' in request.POST
+        and str(jira_instance.id) == request.POST['id']
+    ):
+        form = DeleteJIRAConfForm(request.POST, instance=jira_instance)
+        if form.is_valid():
+            jira_instance.delete()
+            messages.add_message(request,
+                                 messages.SUCCESS,
+                                 'JIRA Conf and relationships removed.',
+                                 extra_tags='alert-success')
+            create_notification(
+                event='other',
+                title=f'Deletion of JIRA URL {jira_instance.url}',
+                description='JIRA url "%s" was deleted by %s'
+                % (jira_instance.url, request.user),
+                url=request.build_absolute_uri(reverse('jira')),
+            )
+
+            return HttpResponseRedirect(reverse('jira'))
 
     collector = NestedObjects(using=DEFAULT_DB_ALIAS)
     collector.collect([jira_instance])

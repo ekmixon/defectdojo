@@ -30,20 +30,26 @@ class Command(BaseCommand):
             # Issue Cloned
             print(issue.fields.issuelinks[0])
 
-            print("Jira Issue: " + str(issue))
-            print("Resolution: " + str(issue.fields.resolution))
+            print(f"Jira Issue: {str(issue)}")
+            print(f"Resolution: {str(issue.fields.resolution)}")
 
             if issue.fields.resolution is not None \
-                    and not finding.under_defect_review:
+                        and not finding.under_defect_review:
                 # print issue.fields.__dict__
-                print("Jira Issue: " + str(issue) + " changed status")
+                print(f"Jira Issue: {str(issue)} changed status")
 
                 # Create Jira Note
                 now = timezone.now()
                 new_note = Notes()
-                new_note.entry = "Please Review Jira Request: " + str(
-                    issue) + ". Review status has changed to " + str(
-                    issue.fields.resolution) + "."
+                new_note.entry = (
+                    (
+                        f"Please Review Jira Request: {str(issue)}"
+                        + ". Review status has changed to "
+                    )
+                    + str(issue.fields.resolution)
+                    + "."
+                )
+
                 new_note.author = User.objects.get(username='JIRA')
                 new_note.date = now
                 new_note.save()

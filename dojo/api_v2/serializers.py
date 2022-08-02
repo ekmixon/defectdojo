@@ -89,10 +89,7 @@ class TagListSerializerField(serializers.ListField):
     def to_representation(self, value):
         if not isinstance(value, TagList):
             if not isinstance(value, list):
-                if self.order_by:
-                    tags = value.all().order_by(*self.order_by)
-                else:
-                    tags = value.all()
+                tags = value.all().order_by(*self.order_by) if self.order_by else value.all()
                 value = [tag.name for tag in tags]
             value = TagList(value, pretty_print=self.pretty_print)
 
@@ -127,9 +124,8 @@ class TaggitSerializer(serializers.Serializer):
 
         for key in list(self.fields.keys()):
             field = self.fields[key]
-            if isinstance(field, TagListSerializerField):
-                if key in validated_data:
-                    to_be_tagged[key] = validated_data.pop(key)
+            if isinstance(field, TagListSerializerField) and key in validated_data:
+                to_be_tagged[key] = validated_data.pop(key)
 
         return (to_be_tagged, validated_data)
 
@@ -196,10 +192,12 @@ class EngagementSerializer(TaggitSerializer, serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, data):
-        if self.context['request'].method == 'POST':
-            if data['target_start'] > data['target_end']:
-                raise serializers.ValidationError(
-                    'Your target start date exceeds your target end date')
+        if (
+            self.context['request'].method == 'POST'
+            and data['target_start'] > data['target_end']
+        ):
+            raise serializers.ValidationError(
+                'Your target start date exceeds your target end date')
         return data
 
 
@@ -234,9 +232,9 @@ class EndpointSerializer(TaggitSerializer, serializers.ModelSerializer):
 
     def validate(self, data):
         port_re = "(:[0-9]{1,5}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}" \
-                  "|655[0-2][0-9]|6553[0-5])"
+                      "|655[0-2][0-9]|6553[0-5])"
 
-        if not self.context['request'].method == 'PATCH':
+        if self.context['request'].method != 'PATCH':
             if ('host' not in data or
                     'protocol' not in data or
                     'path' not in data or

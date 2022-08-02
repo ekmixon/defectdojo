@@ -105,8 +105,7 @@ class BaseModelResource(ModelResource):
             return fields
         for django_field in cls._meta.object_class._meta.fields:
             if django_field.blank is True:
-                res_field = fields.get(django_field.name, None)
-                if res_field:
+                if res_field := fields.get(django_field.name, None):
                     res_field.blank = True
         return fields
 
@@ -130,17 +129,17 @@ class MultipartResource(object):
 
 class DojoApiKeyAuthentication(ApiKeyAuthentication):
     def extract_credentials(self, request):
-        if (request.META.get('HTTP_AUTHORIZATION') and
-                request.META['HTTP_AUTHORIZATION'].lower().startswith('apikey ')):
-            (auth_type, data) = request.META['HTTP_AUTHORIZATION'].split()
-
-            if auth_type.lower() != 'apikey':
-                raise ValueError("Incorrect authorization header.")
-
-            username, api_key = data.split(':', 1)
-        else:
+        if not request.META.get('HTTP_AUTHORIZATION') or not request.META[
+            'HTTP_AUTHORIZATION'
+        ].lower().startswith('apikey '):
             raise ValueError("Incorrect authorization header.")
 
+        (auth_type, data) = request.META['HTTP_AUTHORIZATION'].split()
+
+        if auth_type.lower() != 'apikey':
+            raise ValueError("Incorrect authorization header.")
+
+        username, api_key = data.split(':', 1)
         return username, api_key
 
 
@@ -166,15 +165,14 @@ class UserProductsOnlyAuthorization(Authorization):
                 bundle.request.user in bundle.obj.authorized_users)
 
     def update_list(self, object_list, bundle):
-        allowed = []
-
-        # Since they may not all be saved, iterate over them.
-        for obj in object_list:
-            if (bundle.request.user.is_staff or
-                        bundle.request.user in bundle.obj.authorized_users):
-                allowed.append(obj)
-
-        return allowed
+        return [
+            obj
+            for obj in object_list
+            if (
+                bundle.request.user.is_staff
+                or bundle.request.user in bundle.obj.authorized_users
+            )
+        ]
 
     def update_detail(self, object_list, bundle):
         return (bundle.request.user.is_staff or
@@ -216,16 +214,14 @@ class UserScanSettingsAuthorization(Authorization):
                 bundle.request.user in bundle.obj.product.authorized_users)
 
     def update_list(self, object_list, bundle):
-        allowed = []
-
-        # Since they may not all be saved, iterate over them.
-        for obj in object_list:
-            if (bundle.request.user.is_staff or
-                        bundle.request.user in
-                        bundle.obj.product.authorized_users):
-                allowed.append(obj)
-
-        return allowed
+        return [
+            obj
+            for obj in object_list
+            if (
+                bundle.request.user.is_staff
+                or bundle.request.user in bundle.obj.product.authorized_users
+            )
+        ]
 
     def update_detail(self, object_list, bundle):
         return (bundle.request.user.is_staff or
@@ -272,16 +268,15 @@ class UserScanAuthorization(Authorization):
                 bundle.obj.scan_settings.product.authorized_users)
 
     def update_list(self, object_list, bundle):
-        allowed = []
-
-        # Since they may not all be saved, iterate over them.
-        for obj in object_list:
-            if (bundle.request.user.is_staff or
-                        bundle.request.user in
-                        bundle.obj.scan_settings.product.authorized_users):
-                allowed.append(obj)
-
-        return allowed
+        return [
+            obj
+            for obj in object_list
+            if (
+                bundle.request.user.is_staff
+                or bundle.request.user
+                in bundle.obj.scan_settings.product.authorized_users
+            )
+        ]
 
     def update_detail(self, object_list, bundle):
         return (bundle.request.user.is_staff or
@@ -1040,10 +1035,9 @@ class FindingResource(BaseModelResource):
 
     def dehydrate(self, bundle):
         engagement = Engagement.objects.select_related('product'). \
-            filter(test__finding__id=bundle.obj.id)
-        bundle.data['engagement'] = "/api/v1/engagements/%s/" % engagement[0].id
-        bundle.data['product'] = \
-            "/api/v1/products/%s/" % engagement[0].product.id
+                filter(test__finding__id=bundle.obj.id)
+        bundle.data['engagement'] = f"/api/v1/engagements/{engagement[0].id}/"
+        bundle.data['product'] = f"/api/v1/products/{engagement[0].product.id}/"
         return bundle
 
 
@@ -1130,10 +1124,9 @@ class StubFindingResource(BaseModelResource):
 
     def dehydrate(self, bundle):
         engagement = Engagement.objects.select_related('product'). \
-            filter(test__stub_finding__id=bundle.obj.id)
-        bundle.data['engagement'] = "/api/v1/engagements/%s/" % engagement[0].id
-        bundle.data['product'] = \
-            "/api/v1/products/%s/" % engagement[0].product.id
+                filter(test__stub_finding__id=bundle.obj.id)
+        bundle.data['engagement'] = f"/api/v1/engagements/{engagement[0].id}/"
+        bundle.data['product'] = f"/api/v1/products/{engagement[0].product.id}/"
         return bundle
 
 
@@ -1313,7 +1306,7 @@ class ImportScanValidation(Validation):
                 get_pk_from_uri(uri=bundle.data['engagement'])
             except NotFound:
                 errors.setdefault('engagement', []).append('A valid engagement must be supplied. Ex. /api/v1/engagements/1/')
-        scan_type_list = list([x[0] for x in ImportScanForm.SCAN_TYPE_CHOICES])
+        scan_type_list = [x[0] for x in ImportScanForm.SCAN_TYPE_CHOICES]
         if 'scan_type' in bundle.data:
             if bundle.data['scan_type'] not in scan_type_list:
                 errors.setdefault('scan_type', []).append('scan_type must be one of the following: ' + ', '.join(scan_type_list))
@@ -1328,10 +1321,12 @@ class ImportScanValidation(Validation):
             errors.setdefault('test_type', []).append(
                 'test_type must be one of the following: ' +
                 ', '.join(Test_Type.objects.values_list("name", flat=True)))
-        severity_list = list([x[0] for x in SEVERITY_CHOICES])
-        if 'minimum_severity' in bundle.data:
-            if bundle.data['minimum_severity'] not in severity_list:
-                errors.setdefault('minimum_severity', []).append('minimum_severity must be one of the following: ' + ', '.join(severity_list))
+        severity_list = [x[0] for x in SEVERITY_CHOICES]
+        if (
+            'minimum_severity' in bundle.data
+            and bundle.data['minimum_severity'] not in severity_list
+        ):
+            errors.setdefault('minimum_severity', []).append('minimum_severity must be one of the following: ' + ', '.join(severity_list))
 
         # Make sure active and verified are booleans
         if 'active' in bundle.data:
@@ -1432,8 +1427,7 @@ class ImportScanResource(MultipartResource, Resource):
         return bundle
 
     def detail_uri_kwargs(self, bundle_or_obj):
-        kwargs = {}
-        return kwargs
+        return {}
 
     def obj_create(self, bundle, **kwargs):
         bundle.obj = ImportScanObject(initial=kwargs)
@@ -1471,7 +1465,7 @@ class ImportScanResource(MultipartResource, Resource):
         try:
             for item in parser.items:
                 sev = item.severity
-                if sev == 'Information' or sev == 'Informational':
+                if sev in ['Information', 'Informational']:
                     sev = 'Info'
 
                 item.severity = sev
@@ -1556,16 +1550,18 @@ class ReImportScanValidation(Validation):
                 get_pk_from_uri(uri=bundle.data['test'])
             except NotFound:
                 errors.setdefault('test', []).append('A valid test must be supplied. Ex. /api/v1/tests/1/')
-        scan_type_list = list([x[0] for x in ImportScanForm.SCAN_TYPE_CHOICES])
+        scan_type_list = [x[0] for x in ImportScanForm.SCAN_TYPE_CHOICES]
         if 'scan_type' in bundle.data:
             if bundle.data['scan_type'] not in scan_type_list:
                 errors.setdefault('scan_type', []).append('scan_type must be one of the following: ' + ', '.join(scan_type_list))
         else:
             errors.setdefault('scan_type', []).append('A scan_type must be given so we know how to import the scan file.')
-        severity_list = list([x[0] for x in SEVERITY_CHOICES])
-        if 'minimum_severity' in bundle.data:
-            if bundle.data['minimum_severity'] not in severity_list:
-                errors.setdefault('minimum_severity', []).append('minimum_severity must be one of the following: ' + ', '.join(severity_list))
+        severity_list = [x[0] for x in SEVERITY_CHOICES]
+        if (
+            'minimum_severity' in bundle.data
+            and bundle.data['minimum_severity'] not in severity_list
+        ):
+            errors.setdefault('minimum_severity', []).append('minimum_severity must be one of the following: ' + ', '.join(severity_list))
 
         # Make sure active and verified are booleans
         if 'active' in bundle.data:
@@ -1628,8 +1624,7 @@ class ReImportScanResource(MultipartResource, Resource):
         return bundle
 
     def detail_uri_kwargs(self, bundle_or_obj):
-        kwargs = {}
-        return kwargs
+        return {}
 
     def obj_create(self, bundle, **kwargs):
         bundle.obj = ImportScanObject(initial=kwargs)

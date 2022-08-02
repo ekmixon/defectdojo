@@ -148,31 +148,42 @@ swagger_urls = [
 schema_view = get_swagger_view(title='Defect Dojo API v2')
 
 urlpatterns = [
-    #  tastypie api
-    url(r'^%sapi/' % get_system_setting('url_prefix'), include(v1_api.urls)),
-    #  Django Rest Framework API v2
-    url(r'^%sapi/v2/' % get_system_setting('url_prefix'), include(v2_api.urls)),
-    # api doc urls
-    url(r'%sapi/v1/doc/' % get_system_setting('url_prefix'),
+    url(f"^{get_system_setting('url_prefix')}api/", include(v1_api.urls)),
+    url(f"^{get_system_setting('url_prefix')}api/v2/", include(v2_api.urls)),
+    url(
+        f"{get_system_setting('url_prefix')}api/v1/doc/",
         include((swagger_urls, 'tp_s'), namespace='tastypie_swagger'),
         kwargs={
             "tastypie_api_module": "dojo.urls.v1_api",
             "namespace": "tastypie_swagger",
-            "version": "1.0"}),
-    # action history
-    url(r'^%shistory/(?P<cid>\d+)/(?P<oid>\d+)$' % get_system_setting('url_prefix'), views.action_history,
-        name='action_history'),
-    url(r'^%s' % get_system_setting('url_prefix'), include(ur)),
+            "version": "1.0",
+        },
+    ),
+    url(
+        r'^%shistory/(?P<cid>\d+)/(?P<oid>\d+)$'
+        % get_system_setting('url_prefix'),
+        views.action_history,
+        name='action_history',
+    ),
+    url(f"^{get_system_setting('url_prefix')}", include(ur)),
     url(r'^api/v2/api-token-auth/', tokenviews.obtain_auth_token),
     url(r'^api/v2/doc/', schema_view, name="api_v2_schema"),
-    url(r'^robots.txt', lambda x: HttpResponse("User-Agent: *\nDisallow: /", content_type="text/plain"), name="robots_file"),
-
+    url(
+        r'^robots.txt',
+        lambda x: HttpResponse(
+            "User-Agent: *\nDisallow: /", content_type="text/plain"
+        ),
+        name="robots_file",
+    ),
 ]
 
-if hasattr(settings, 'DJANGO_ADMIN_ENABLED'):
-    if settings.DJANGO_ADMIN_ENABLED:
+
+if hasattr(settings, 'DJANGO_ADMIN_ENABLED') and settings.DJANGO_ADMIN_ENABLED:
         #  django admin
-        urlpatterns += [url(r'^%sadmin/' % get_system_setting('url_prefix'), admin.site.urls)]
+    urlpatterns += [
+        url(f"^{get_system_setting('url_prefix')}admin/", admin.site.urls)
+    ]
+
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

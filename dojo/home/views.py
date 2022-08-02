@@ -72,7 +72,7 @@ def dashboard(request):
         if finding.severity:
             sev_counts[finding.severity.capitalize()] += 1
 
-    by_month = list()
+    by_month = []
 
     dates_to_use = [now,
                     now - relativedelta(months=1),
