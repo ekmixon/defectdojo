@@ -22,18 +22,18 @@ django-taggit-serializer==0.1.7
 git+https://github.com/Maffooch/django-tastypie-swagger@master#egg=django-tastypie-swagger
 django-tastypie==0.14.2
 django-watson==1.5.2
-Django==2.2.27
+Django==3.2.15
 djangorestframework>=3.11.2
 gunicorn==19.9.0
 html2text==2018.1.9
 humanize==0.5.1
 jira==2.0.0
-lxml==4.6.5
+lxml==4.9.1
 Markdown==3.1.1
 mysqlclient==1.4.2
 pandas>=0.24.2
 pdfkit==0.6.1
-Pillow==9.0.1  # required by django-imagekit
+Pillow==9.2.0  # required by django-imagekit
 psycopg2-binary==2.8.2
 cryptography==3.3.2
 pygments==2.7.4
